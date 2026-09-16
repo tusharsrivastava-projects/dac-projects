@@ -3,6 +3,7 @@ import express from 'express';
 import cookieParser from 'cookie-parser';
 import { config } from './config.js';
 import { db } from './db/index.js';
+import { bootstrap, isEmpty, KNOWN_DEFAULT_PASSWORDS } from './db/bootstrap.js';
 import { purgeExpiredSessions } from './lib/auth.js';
 import { smtpConfigured } from './lib/mailer.js';
 import { errorHandler, notFoundHandler } from './middleware/errors.js';
@@ -61,6 +62,23 @@ app.get('/offer/:token', page('offer.html'));
 app.use(notFoundHandler);
 app.use((_req, res) => res.status(404).sendFile(path.join(config.publicDir, 'index.html')));
 app.use(errorHandler);
+
+// A fresh deploy would otherwise have no way in. Only fires on an empty
+// database, so it never disturbs a running installation.
+if (isEmpty() && process.env.AUTO_BOOTSTRAP !== 'false') {
+  const seeded = bootstrap({ demo: process.env.SEED_DEMO_DATA !== 'false' });
+  console.log(`Bootstrapped an empty database: admin ${config.seedAdmin.email}, ${seeded.jobs} role(s), ${seeded.questions} question(s).`);
+}
+
+// Shipping a repo means shipping its default password. Say so, loudly.
+if (KNOWN_DEFAULT_PASSWORDS.has(config.seedAdmin.password)) {
+  const publicFacing = Boolean(config.baseUrl) || process.env.NODE_ENV === 'production';
+  console.warn(
+    `\n  ${publicFacing ? '!!! ' : ''}The admin account still uses the default password from the repo.` +
+    `\n  ${publicFacing ? '!!! ' : ''}Anyone who has read the source can sign in as an administrator.` +
+    `\n  ${publicFacing ? '!!! ' : ''}Set ADMIN_PASSWORD, or change it under Profile once you are in.\n`,
+  );
+}
 
 const purged = purgeExpiredSessions();
 if (purged) console.log(`Cleared ${purged} expired session(s).`);

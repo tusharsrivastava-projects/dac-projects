@@ -29,8 +29,9 @@ export const config = {
     'audio/wav', 'audio/x-wav', 'audio/aac', 'video/webm',
   ],
 
-  // Where offer links point. Set this to your real host in production.
-  baseUrl: (process.env.BASE_URL || '').replace(/\/+$/, ''),
+  // Where offer links point. RENDER_EXTERNAL_URL is set automatically on
+  // Render, so a deploy there gets correct links with no configuration.
+  baseUrl: (process.env.BASE_URL || process.env.RENDER_EXTERNAL_URL || '').replace(/\/+$/, ''),
 
   // Optional SMTP. Without it, mail is written to the in-app outbox only.
   smtp: {

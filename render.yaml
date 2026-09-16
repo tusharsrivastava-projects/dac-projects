@@ -1,0 +1,102 @@
+# Render blueprint for the DAC HRM Platform.
+#
+#   1. Push this repo to GitHub.
+#   2. Render dashboard → New → Blueprint → pick this repository.
+#   3. Render reads this file, asks for the two values marked sync:false,
+#      and deploys. You get an https://<name>.onrender.com URL.
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# STORAGE — read this before a real hiring round.
+#
+# The free plan has NO persistent disk. The SQLite database and every uploaded
+# recording live on an ephemeral filesystem and are wiped on each deploy and
+# restart. That is fine for a demo: the app re-seeds itself with the admin
+# account and the sample roles on boot, so the link always works. It is NOT
+# fine once candidates are recording real answers.
+#
+# To make it durable, uncomment the `disk:` block below and change `plan: free`
+# to `plan: starter`. Disks need a paid instance (~$7/mo plus $0.25/GB).
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+  - type: web
+    name: dac-hrm
+    runtime: node
+    plan: free
+    region: singapore          # closest Render region to Dehradun
+    branch: claude/dac-hrm-platform-xploch
+    buildCommand: npm ci --omit=dev
+    startCommand: npm start
+    healthCheckPath: /api/health
+
+    # Persistent storage — uncomment together with `plan: starter` above.
+    # disk:
+    #   name: dac-hrm-data
+    #   mountPath: /var/data
+    #   sizeGB: 5
+
+    envVars:
+      - key: NODE_ENV
+        value: production
+
+      # Render terminates TLS for us, so cookies can be secure-only.
+      - key: COOKIE_SECURE
+        value: 'true'
+
+      # Where the database and recordings live. Leave commented on the free
+      # plan; uncomment it at the same time as the disk block above.
+      # - key: DATA_DIR
+      #   value: /var/data
+
+      # BASE_URL is intentionally unset — the app falls back to
+      # RENDER_EXTERNAL_URL, so offer links point at the right host
+      # automatically, including on preview environments.
+
+      # Render generates this on first deploy and shows it in the dashboard
+      # under Environment. That is your admin password — copy it, sign in,
+      # and change it under Profile.
+      - key: ADMIN_PASSWORD
+        generateValue: true
+
+      - key: ADMIN_EMAIL
+        sync: false            # Render prompts you for this
+      - key: ADMIN_NAME
+        value: DAC Administrator
+
+      # Set to 'false' if you want an empty board with no sample roles.
+      - key: SEED_DEMO_DATA
+        value: 'true'
+
+      - key: MAX_AUDIO_MB
+        value: '25'
+      - key: SESSION_DAYS
+        value: '7'
+
+      # ── Mail ───────────────────────────────────────────────────────────────
+      # Without SMTP_HOST every letter is held in the in-app Mail outbox and
+      # nothing is delivered. Fill these in from the Render dashboard when you
+      # are ready to send for real; SMTP_PASS should be a secret, not committed.
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: '587'
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: MAIL_FROM
+        value: DAC Talent <no-reply@dgu.ac.in>
+
+      # ── Branding on offer letters ──────────────────────────────────────────
+      - key: ORG_NAME
+        value: DAC — DGU AI Cell
+      - key: ORG_PARENT
+        value: DBS Global University
+      - key: ORG_ADDRESS
+        value: Dehradun, Uttarakhand, India
+      - key: ORG_SIGNATORY
+        value: Head of Talent
+      - key: ORG_SIGNATORY_NAME
+        value: DAC Hiring Office
+      - key: ORG_WEBSITE
+        value: https://dgu.ac.in

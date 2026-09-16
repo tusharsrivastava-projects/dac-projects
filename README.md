@@ -61,9 +61,16 @@ Seeded logins:
 | Candidate | `aarav.demo@dgu.ac.in` | `candidate123`   |
 
 Change the admin password before this goes anywhere real — `ADMIN_EMAIL` and
-`ADMIN_PASSWORD` in `.env` control what `npm run seed` creates.
+`ADMIN_PASSWORD` in `.env` control what `npm run seed` creates, and the server
+warns on every boot while the repo default is still in place.
 
 `npm run reset` wipes the database and uploads and reseeds from scratch.
+
+An empty database bootstraps itself on first boot, so a fresh deploy always has
+a way in without anyone running the seed by hand. It only fires when there are
+no users at all — restarting a live installation never touches your data. Set
+`SEED_DEMO_DATA=false` to skip the sample roles, or `AUTO_BOOTSTRAP=false` to
+turn it off entirely.
 
 ### Recording needs a secure context
 
@@ -80,6 +87,32 @@ send it by hand. Set the `SMTP_*` variables in `.env` to switch on real delivery
 
 Set `BASE_URL` in production. Offer links are built from it, and getting it wrong means
 sending candidates a link to `localhost`.
+
+## Deploying to Render
+
+A blueprint ships with the repo, so this is mostly clicking:
+
+1. Render dashboard → **New → Blueprint** → pick this repository.
+2. It reads `render.yaml`, asks for `ADMIN_EMAIL` (and the SMTP fields, which
+   you can leave blank for now), and deploys.
+3. Open **Environment** in the dashboard and copy the generated
+   `ADMIN_PASSWORD`. That is your admin login — change it under Profile once
+   you are in.
+
+You get `https://<name>.onrender.com`. HTTPS is handled for you, which matters:
+the audio interview needs a secure context or the browser will not release the
+microphone. Offer links are built from Render's own `RENDER_EXTERNAL_URL`, so
+they point at the right host without you setting anything.
+
+**Storage, and why it matters.** Render's free plan has no persistent disk. The
+database and every uploaded recording sit on an ephemeral filesystem and are
+wiped on each deploy and restart. The app re-seeds itself on boot, so the link
+always works and the sample roles come back — fine for a demo, not fine once
+real candidates are recording answers.
+
+Before a real hiring round, open `render.yaml` and make three changes: switch
+`plan: free` to `plan: starter`, uncomment the `disk:` block, and uncomment the
+`DATA_DIR` variable. Disks require a paid instance.
 
 ## Testing
 
