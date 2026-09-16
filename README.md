@@ -92,6 +92,17 @@ through to an accepted offer — applying, the locked interview, audio upload an
 validation, submission, scoring, approval, the offer link, plus the access-control
 checks that keep one candidate out of another's application and audio.
 
+There is a browser-level version of the same walk-through that drives Chromium with a
+synthetic microphone, so the recording path gets covered for real. It needs Playwright,
+which is deliberately not a default dependency:
+
+```bash
+npm i -D playwright && npx playwright install chromium
+npm run test:ui
+```
+
+Set `SHOT_DIR=/some/dir` to have it drop a screenshot of every step.
+
 ## How it is built
 
 No build step and no framework. Node with Express on the back, plain ES modules and
