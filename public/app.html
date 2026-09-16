@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dashboard — DAC Talent</title>
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/app.css">
+  <link rel="stylesheet" href="/css/dashboard.css">
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-head">
+        <a class="brand" href="/app">
+          <img src="/assets/dac-mark.svg" alt="">
+          <span>
+            <span class="brand-name">D<span class="a">A</span>C</span>
+            <span class="brand-sub" style="display:block">( DGU AI CELL )</span>
+          </span>
+        </a>
+        <span class="sidebar-role" id="side-role">Candidate</span>
+      </div>
+
+      <nav class="sidebar-nav" id="side-nav" aria-label="Main"></nav>
+
+      <div class="sidebar-foot">
+        <div class="user-chip">
+          <div class="avatar" id="side-avatar">–</div>
+          <div class="grow" style="min-width:0">
+            <div class="user-name" id="side-name">Loading…</div>
+            <div class="user-mail" id="side-mail"></div>
+          </div>
+        </div>
+        <button class="btn-logout" id="btn-logout" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14.5 8V5.5h-10v13h10V16M9.5 12h11m0 0-3-3m3 3-3 3"/>
+          </svg>
+          Log out
+        </button>
+      </div>
+    </aside>
+
+    <div class="scrim" id="scrim"></div>
+
+    <main class="main">
+      <header class="topbar">
+        <button class="menu-toggle" id="menu-toggle" type="button" aria-label="Open navigation">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+        </button>
+        <div class="grow" style="min-width:0">
+          <h1 id="page-title">Overview</h1>
+          <div class="topbar-sub" id="page-sub"></div>
+        </div>
+        <div class="topbar-actions" id="page-actions"></div>
+      </header>
+
+      <div class="content" id="view">
+        <div class="stack">
+          <div class="skeleton" style="height:96px"></div>
+          <div class="skeleton" style="height:220px"></div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script type="module" src="/js/candidate.js"></script>
+</body>
+</html>

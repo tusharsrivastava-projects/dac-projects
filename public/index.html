@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DAC Talent — DGU AI Cell</title>
+  <meta name="description" content="Hiring platform for the DGU AI Cell: apply, record your interview, and get your offer letter in one place.">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/app.css">
+  <link rel="stylesheet" href="/css/landing.css">
+</head>
+<body class="landing">
+  <div class="landing-grid">
+    <!-- Left: brand + pitch -->
+    <section class="landing-pitch">
+      <div class="pitch-inner">
+        <img src="/assets/dac-badge.svg" alt="DAC — DGU AI Cell" class="pitch-logo" width="168" height="168">
+        <h1 class="pitch-title">Join the <span>DGU AI Cell</span>.</h1>
+        <p class="pitch-lede">
+          One place to apply, answer the panel in your own voice, and pick up your offer letter.
+          No scheduling ping-pong, no lost email threads.
+        </p>
+
+        <ul class="pitch-steps">
+          <li><span>1</span><div><strong>Apply to a role</strong>Tell us what you have built and why this team.</div></li>
+          <li><span>2</span><div><strong>Record your interview</strong>Read the panel's questions, answer with audio, on your own time.</div></li>
+          <li><span>3</span><div><strong>Get your offer</strong>Once the panel approves you, your letter arrives with a link to accept.</div></li>
+        </ul>
+
+        <div class="pitch-roles" id="pitch-roles" aria-live="polite"></div>
+      </div>
+    </section>
+
+    <!-- Right: auth -->
+    <section class="landing-auth">
+      <div class="auth-card card">
+        <div class="auth-tabs" role="tablist">
+          <button class="auth-tab is-active" role="tab" data-tab="login" aria-selected="true">Sign in</button>
+          <button class="auth-tab" role="tab" data-tab="register" aria-selected="false">Create account</button>
+        </div>
+
+        <div class="card-body">
+          <div id="auth-alert"></div>
+
+          <form id="login-form" class="stack" novalidate>
+            <h2>Welcome back</h2>
+            <p class="muted tiny" style="margin:-8px 0 4px">Candidates and the AI Cell team sign in here.</p>
+            <div class="field">
+              <label for="login-email">Email</label>
+              <input class="input" id="login-email" name="email" type="email" autocomplete="username" required placeholder="you@dgu.ac.in">
+            </div>
+            <div class="field">
+              <label for="login-password">Password</label>
+              <input class="input" id="login-password" name="password" type="password" autocomplete="current-password" required placeholder="••••••••">
+            </div>
+            <button class="btn btn-primary btn-block btn-lg" type="submit">Sign in</button>
+            <p class="tiny muted center" style="margin:2px 0 0">
+              New here? <button type="button" class="linkish" data-goto="register">Create a candidate account</button>
+            </p>
+          </form>
+
+          <form id="register-form" class="stack hidden" novalidate>
+            <h2>Create your account</h2>
+            <p class="muted tiny" style="margin:-8px 0 4px">Takes a minute. You can apply straight after.</p>
+            <div class="field">
+              <label for="reg-name">Full name</label>
+              <input class="input" id="reg-name" name="fullName" type="text" autocomplete="name" required placeholder="Aarav Mehta">
+            </div>
+            <div class="field">
+              <label for="reg-email">Email</label>
+              <input class="input" id="reg-email" name="email" type="email" autocomplete="username" required placeholder="you@dgu.ac.in">
+            </div>
+            <div class="field">
+              <label for="reg-phone">Phone <span class="muted-2">(optional)</span></label>
+              <input class="input" id="reg-phone" name="phone" type="tel" autocomplete="tel" placeholder="+91 98765 43210">
+            </div>
+            <div class="field">
+              <label for="reg-password">Password</label>
+              <input class="input" id="reg-password" name="password" type="password" autocomplete="new-password" required placeholder="At least 8 characters">
+              <span class="field-hint">Eight characters or more, with at least one letter and one number.</span>
+            </div>
+            <button class="btn btn-primary btn-block btn-lg" type="submit">Create account</button>
+            <p class="tiny muted center" style="margin:2px 0 0">
+              Already registered? <button type="button" class="linkish" data-goto="login">Sign in instead</button>
+            </p>
+          </form>
+        </div>
+      </div>
+
+      <p class="auth-foot tiny muted">
+        DAC — DGU AI Cell · DBS Global University, Dehradun
+      </p>
+    </section>
+  </div>
+
+  <script type="module" src="/js/landing.js"></script>
+</body>
+</html>

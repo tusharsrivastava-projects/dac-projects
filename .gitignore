@@ -1,0 +1,12 @@
+node_modules/
+data/*.sqlite
+data/*.sqlite-wal
+data/*.sqlite-shm
+data/uploads/*
+!data/uploads/.gitkeep
+.env
+.env.local
+*.log
+.DS_Store
+.vscode/
+.idea/

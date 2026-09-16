@@ -1,0 +1,26 @@
+{
+  "name": "dac-hrm-platform",
+  "version": "1.0.0",
+  "private": true,
+  "description": "DAC (DGU AI Cell) HRM platform - hiring, async audio interviews, admin review and offer letters.",
+  "type": "module",
+  "engines": {
+    "node": ">=20.11"
+  },
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node --watch server/index.js",
+    "seed": "node server/db/seed.js",
+    "reset": "node server/db/seed.js --reset",
+    "test": "bash test/run.sh",
+    "test:ui": "bash test/run-ui.sh"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "better-sqlite3": "^11.7.0",
+    "cookie-parser": "^1.4.7",
+    "express": "^4.21.2",
+    "multer": "^2.4.0",
+    "nodemailer": "^10.0.10"
+  }
+}

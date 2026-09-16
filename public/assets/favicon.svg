@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="DAC">
+  <title>DAC</title>
+  <defs>
+    <linearGradient id="mSteel" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff"/><stop offset="45%" stop-color="#e9ebf1"/>
+      <stop offset="58%" stop-color="#9aa0b1"/><stop offset="100%" stop-color="#eceef4"/>
+    </linearGradient>
+    <linearGradient id="mViolet" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#b877f7"/><stop offset="100%" stop-color="#5f229b"/>
+    </linearGradient>
+    <linearGradient id="mArrow" x1="0" y1="1" x2="0.3" y2="0">
+      <stop offset="0%" stop-color="#b3172a"/><stop offset="100%" stop-color="#ff5361"/>
+    </linearGradient>
+    <radialGradient id="mBg" cx="50%" cy="42%" r="62%">
+      <stop offset="0%" stop-color="#1c0b2f"/><stop offset="100%" stop-color="#050209"/>
+    </radialGradient>
+  </defs>
+  <rect width="128" height="128" rx="28" fill="url(#mBg)"/>
+  <circle cx="64" cy="64" r="57" fill="none" stroke="#6a2bb0" stroke-width="2.5" opacity="0.7"/>
+  <circle cx="64" cy="64" r="50" fill="none" stroke="url(#mViolet)" stroke-width="5"/>
+  <g stroke="#a259e6" stroke-width="2" stroke-linecap="round" opacity="0.85">
+    <path d="M92 44 h9 l7 -7"/><path d="M92 84 h9 l7 7"/><path d="M36 44 h-9 l-7 -7"/>
+    <circle cx="109" cy="36" r="2.6" fill="#c58bff" stroke="none"/>
+    <circle cx="109" cy="92" r="2.6" fill="#c58bff" stroke="none"/>
+    <circle cx="19" cy="36" r="2.6" fill="#c58bff" stroke="none"/>
+  </g>
+  <path d="M34 50 L44 33 L51 39 L61 20" fill="none" stroke="url(#mArrow)" stroke-width="5.5"
+        stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M50 18 L65 14 L63 29 Z" fill="url(#mArrow)"/>
+  <g stroke="#40146c" stroke-width="2.4" stroke-linejoin="round">
+    <path fill="url(#mSteel)" fill-rule="evenodd" d="M28 54 H44 l8 8 v26 l-8 8 H28 Z M36 62 v26 h6 l3 -3 v-20 l-3 -3 Z"/>
+    <path fill="url(#mSteel)" fill-rule="evenodd" d="M60 54 h11 l13 42 h-10 l-3 -10 h-12 l-3 10 h-10 Z M65 67 l-3 12 h7 Z"/>
+    <path fill="url(#mSteel)" d="M101 54 h-17 l-8 8 v26 l8 8 h17 v-10 h-13 l-3 -3 v-20 l3 -3 h13 Z"/>
+  </g>
+  <rect x="57" y="61" width="16" height="22" rx="3" fill="#1b0a2e" stroke="#a259e6" stroke-width="2"/>
+  <text x="65" y="77" text-anchor="middle" font-family="'Trebuchet MS','Segoe UI',Verdana,sans-serif"
+        font-size="11" font-weight="700" fill="#ffffff">AI</text>
+</svg>

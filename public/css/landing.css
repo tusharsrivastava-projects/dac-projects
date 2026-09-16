@@ -1,0 +1,96 @@
+/* ── Landing / auth page ────────────────────────────────────────────────── */
+body.landing { background: var(--violet-950); }
+
+.landing-grid {
+  display: grid;
+  grid-template-columns: 1.05fr .95fr;
+  min-height: 100vh;
+}
+
+.landing-pitch {
+  position: relative;
+  padding: 56px 52px;
+  display: flex; align-items: center;
+  color: #e6ddf5;
+  background:
+    radial-gradient(900px 620px at 18% 12%, rgba(132, 56, 212, .5), transparent 62%),
+    radial-gradient(700px 520px at 88% 88%, rgba(224, 32, 47, .16), transparent 60%),
+    linear-gradient(165deg, #150825 0%, #24103f 52%, #35155f 100%);
+  overflow: hidden;
+}
+/* faint circuit grid behind the pitch */
+.landing-pitch::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none; opacity: .5;
+  background-image:
+    linear-gradient(rgba(162, 89, 230, .09) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(162, 89, 230, .09) 1px, transparent 1px);
+  background-size: 46px 46px;
+  mask-image: radial-gradient(80% 70% at 40% 40%, #000 30%, transparent 78%);
+}
+.pitch-inner { position: relative; z-index: 1; max-width: 560px; }
+
+.pitch-logo {
+  width: 168px; height: 168px; display: block; margin: 0 0 26px -10px;
+  filter: drop-shadow(0 12px 40px rgba(162, 89, 230, .4));
+}
+.pitch-title { font-size: clamp(30px, 3.4vw, 42px); color: #fff; letter-spacing: -.02em; }
+.pitch-title span {
+  background: linear-gradient(90deg, var(--violet-200), #ff8a95);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.pitch-lede { margin: 14px 0 0; font-size: 16.5px; line-height: 1.65; color: #bcaad9; max-width: 48ch; }
+
+.pitch-steps { list-style: none; margin: 32px 0 0; padding: 0; display: grid; gap: 16px; }
+.pitch-steps li { display: flex; gap: 14px; align-items: flex-start; }
+.pitch-steps span {
+  flex: none; width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center;
+  font-size: 13.5px; font-weight: 700; color: var(--violet-200);
+  background: rgba(162, 89, 230, .17); border: 1px solid rgba(197, 139, 255, .28);
+}
+.pitch-steps div { font-size: 14.5px; color: #a897c4; line-height: 1.55; }
+.pitch-steps strong { display: block; color: #fff; font-weight: 650; font-size: 15px; margin-bottom: 1px; }
+
+.pitch-roles { margin-top: 34px; display: flex; flex-wrap: wrap; gap: 8px; }
+.role-chip {
+  font-size: 12.5px; font-weight: 550; color: #d4c5ec;
+  background: rgba(255, 255, 255, .06); border: 1px solid rgba(255, 255, 255, .12);
+  padding: 6px 13px; border-radius: 999px;
+}
+.role-chip b { color: #fff; font-weight: 650; }
+
+.landing-auth {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 48px 32px; background: var(--canvas);
+}
+.auth-card { width: min(430px, 100%); box-shadow: var(--shadow-lg); border: 0; overflow: hidden; }
+.auth-tabs { display: grid; grid-template-columns: 1fr 1fr; background: var(--surface-2); border-bottom: 1px solid var(--line); }
+.auth-tab {
+  background: none; border: 0; font-family: inherit; font-size: 14px; font-weight: 600;
+  color: var(--ink-3); padding: 15px 10px; cursor: pointer; position: relative;
+  transition: color .13s ease;
+}
+.auth-tab:hover { color: var(--violet-500); }
+.auth-tab.is-active { color: var(--violet-600); background: var(--surface); }
+.auth-tab.is-active::after {
+  content: ''; position: absolute; left: 18%; right: 18%; bottom: -1px; height: 2.5px;
+  background: var(--violet-500); border-radius: 3px 3px 0 0;
+}
+.auth-foot { margin: 22px 0 0; }
+
+.linkish {
+  background: none; border: 0; padding: 0; font: inherit; color: var(--violet-500);
+  font-weight: 600; cursor: pointer; text-decoration: underline; text-underline-offset: 2px;
+}
+.linkish:hover { color: var(--violet-600); }
+
+@media (max-width: 960px) {
+  .landing-grid { grid-template-columns: 1fr; }
+  .landing-pitch { padding: 42px 26px 34px; }
+  .pitch-logo { width: 116px; height: 116px; margin-bottom: 18px; }
+  .pitch-steps { gap: 13px; }
+  .landing-auth { padding: 30px 20px 44px; }
+}
+@media (max-width: 520px) {
+  .pitch-roles { display: none; }
+  .landing-pitch { padding: 32px 20px 28px; }
+}
