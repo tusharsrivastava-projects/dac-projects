@@ -13,7 +13,8 @@
     "seed": "node server/db/seed.js",
     "reset": "node server/db/seed.js --reset",
     "test": "bash test/run.sh",
-    "test:ui": "bash test/run-ui.sh"
+    "test:ui": "bash test/run-ui.sh",
+    "google-auth": "node scripts/google-auth.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

@@ -1,6 +1,5 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
-import path from 'node:path';
 import express from 'express';
 import multer from 'multer';
 import { config } from '../config.js';
@@ -8,6 +7,7 @@ import { db, logActivity } from '../db/index.js';
 import { badRequest, conflict, forbidden, notFound, wrap } from '../lib/http.js';
 import * as notify from '../lib/notify.js';
 import { INTERVIEW_OPEN } from '../lib/stages.js';
+import { readAnswer, removeAnswer, storeAnswer } from '../lib/storage.js';
 import * as v from '../lib/validate.js';
 import { requireAdmin, requireAuth } from '../middleware/session.js';
 import { loadApplication, shapeApplication } from './applications.js';
@@ -80,6 +80,7 @@ interviewRouter.get('/:applicationId', requireAuth, wrap((req, res) => {
         answer: a ? {
           id: a.id,
           audioUrl: `/api/interview/audio/${a.id}`,
+          storage: a.storage || 'local',
           mimeType: a.mime_type,
           durationSeconds: a.duration_seconds,
           sizeBytes: a.size_bytes,
@@ -97,7 +98,7 @@ interviewRouter.post(
   '/:applicationId/answers/:questionId',
   requireAuth,
   upload.single('audio'),
-  wrap((req, res) => {
+  wrap(async (req, res) => {
     const cleanup = () => { if (req.file) fs.rmSync(req.file.path, { force: true }); };
     try {
       const appId = v.int(req.params.applicationId, 'Application id', { min: 1 });
@@ -121,17 +122,28 @@ interviewRouter.post(
         throw badRequest(`That answer runs ${Math.round(duration)}s but the limit is ${question.answer_seconds}s.`);
       }
 
-      // Re-recording replaces the previous take; drop the old file so uploads stay tidy.
+      // Re-recording replaces the previous take; drop the old one so neither
+      // the disk nor the Drive folder fills up with dead takes.
       const previous = db.prepare('SELECT * FROM answers WHERE application_id = ? AND question_id = ?').get(appId, questionId);
       if (previous) {
-        fs.rmSync(path.join(config.uploadDir, previous.audio_file), { force: true });
+        await removeAnswer(previous);
         db.prepare('DELETE FROM answers WHERE id = ?').run(previous.id);
       }
 
+      const ordered = questionsForJob(app.job_id);
+      const stored = await storeAnswer({
+        file: req.file,
+        application: app,
+        question,
+        questionNumber: ordered.findIndex((q) => q.id === question.id) + 1,
+      });
+
       const id = db.prepare(`
-        INSERT INTO answers (application_id, question_id, audio_file, mime_type, size_bytes, duration_seconds)
-        VALUES (?, ?, ?, ?, ?, ?)
-      `).run(appId, questionId, req.file.filename, String(req.file.mimetype || '').split(';')[0], req.file.size, duration).lastInsertRowid;
+        INSERT INTO answers (application_id, question_id, audio_file, mime_type, size_bytes,
+                             duration_seconds, storage, drive_file_id, drive_link)
+        VALUES (@application_id, @question_id, @audio_file, @mime_type, @size_bytes,
+                @duration_seconds, @storage, @drive_file_id, @drive_link)
+      `).run({ ...stored, application_id: appId, question_id: questionId, duration_seconds: duration }).lastInsertRowid;
 
       logActivity({
         actorId: req.user.id, actorName: req.user.fullName,
@@ -145,12 +157,13 @@ interviewRouter.post(
           id,
           questionId,
           audioUrl: `/api/interview/audio/${id}`,
-          mimeType: req.file.mimetype,
-          sizeBytes: req.file.size,
+          mimeType: stored.mime_type,
+          sizeBytes: stored.size_bytes,
           durationSeconds: duration,
+          storage: stored.storage,
         },
         answered,
-        total: questionsForJob(app.job_id).length,
+        total: ordered.length,
       });
     } catch (err) {
       cleanup();
@@ -160,7 +173,7 @@ interviewRouter.post(
 );
 
 // ── Candidate drops a take before submitting ─────────────────────────────────
-interviewRouter.delete('/:applicationId/answers/:questionId', requireAuth, wrap((req, res) => {
+interviewRouter.delete('/:applicationId/answers/:questionId', requireAuth, wrap(async (req, res) => {
   const appId = v.int(req.params.applicationId, 'Application id', { min: 1 });
   const questionId = v.int(req.params.questionId, 'Question id', { min: 1 });
   const app = ownApplication(req, appId);
@@ -171,7 +184,7 @@ interviewRouter.delete('/:applicationId/answers/:questionId', requireAuth, wrap(
   const answer = db.prepare('SELECT * FROM answers WHERE application_id = ? AND question_id = ?').get(appId, questionId);
   if (!answer) throw notFound('There is no recording for that question yet.');
 
-  fs.rmSync(path.join(config.uploadDir, answer.audio_file), { force: true });
+  await removeAnswer(answer);
   db.prepare('DELETE FROM answers WHERE id = ?').run(answer.id);
   res.json({ ok: true });
 }));
@@ -216,7 +229,7 @@ interviewRouter.post('/:applicationId/submit', requireAuth, wrap(async (req, res
 }));
 
 // ── Audio playback: the candidate who recorded it, or any admin ──────────────
-interviewRouter.get('/audio/:answerId', requireAuth, wrap((req, res) => {
+interviewRouter.get('/audio/:answerId', requireAuth, wrap(async (req, res) => {
   const id = v.int(req.params.answerId, 'Answer id', { min: 1 });
   const answer = db.prepare(`
     SELECT an.*, a.candidate_id FROM answers an
@@ -228,37 +241,52 @@ interviewRouter.get('/audio/:answerId', requireAuth, wrap((req, res) => {
     throw forbidden('That recording is not yours.');
   }
 
-  const file = path.join(config.uploadDir, answer.audio_file);
-  let stat;
-  try { stat = fs.statSync(file); } catch { throw notFound('That recording is missing from storage.'); }
-
-  res.type(answer.mime_type || 'application/octet-stream');
   res.setHeader('Cache-Control', 'private, max-age=600');
   res.setHeader('Accept-Ranges', 'bytes');
 
-  // Range support so the player can scrub instead of only playing straight through.
+  const source = await readAnswer(answer, { range: req.headers.range || null });
+  if (source.kind === 'missing') throw notFound('That recording is missing from storage.');
+
+  // Stored in Drive: pass Drive's response through, Range headers and all, so
+  // the player can still scrub without us buffering the whole recording.
+  if (source.kind === 'stream') {
+    res.status(source.status);
+    res.type(source.contentType);
+    if (source.contentLength) res.setHeader('Content-Length', source.contentLength);
+    if (source.contentRange) res.setHeader('Content-Range', source.contentRange);
+    if (!source.stream) return res.end();
+    source.stream.on('error', (err) => {
+      console.error(`[audio] Drive stream failed for answer ${id}: ${err.message}`);
+      res.destroy();
+    });
+    return source.stream.pipe(res);
+  }
+
+  res.type(source.contentType);
+
+  // Local file: serve ranges ourselves so reviewers can scrub.
   const range = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range || '');
   if (range) {
     let start = range[1] === '' ? null : Number(range[1]);
     let end = range[2] === '' ? null : Number(range[2]);
     if (start === null) {                      // suffix range: last N bytes
-      start = Math.max(0, stat.size - (end ?? 0));
-      end = stat.size - 1;
-    } else if (end === null || end >= stat.size) {
-      end = stat.size - 1;
+      start = Math.max(0, source.size - (end ?? 0));
+      end = source.size - 1;
+    } else if (end === null || end >= source.size) {
+      end = source.size - 1;
     }
-    if (start > end || start >= stat.size) {
-      res.setHeader('Content-Range', `bytes */${stat.size}`);
+    if (start > end || start >= source.size) {
+      res.setHeader('Content-Range', `bytes */${source.size}`);
       return res.status(416).end();
     }
     res.status(206);
-    res.setHeader('Content-Range', `bytes ${start}-${end}/${stat.size}`);
+    res.setHeader('Content-Range', `bytes ${start}-${end}/${source.size}`);
     res.setHeader('Content-Length', end - start + 1);
-    return fs.createReadStream(file, { start, end }).pipe(res);
+    return fs.createReadStream(source.file, { start, end }).pipe(res);
   }
 
-  res.setHeader('Content-Length', stat.size);
-  return fs.createReadStream(file).pipe(res);
+  res.setHeader('Content-Length', source.size);
+  return fs.createReadStream(source.file).pipe(res);
 }));
 
 // ── Admin scores a single answer; the application score is the running mean ──

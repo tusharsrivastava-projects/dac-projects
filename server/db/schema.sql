@@ -59,6 +59,8 @@ CREATE TABLE IF NOT EXISTS applications (
   reviewed_at            TEXT,
   interview_unlocked_at  TEXT,
   interview_submitted_at TEXT,
+  drive_folder_id        TEXT,
+  drive_folder_link      TEXT,
   created_at             TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at             TEXT NOT NULL DEFAULT (datetime('now')),
   UNIQUE (candidate_id, job_id)
@@ -90,6 +92,9 @@ CREATE TABLE IF NOT EXISTS answers (
   size_bytes       INTEGER,
   duration_seconds REAL,
   transcript       TEXT,
+  storage          TEXT NOT NULL DEFAULT 'local',
+  drive_file_id    TEXT,
+  drive_link       TEXT,
   score            REAL,
   feedback         TEXT,
   evaluated_by     INTEGER REFERENCES users (id),

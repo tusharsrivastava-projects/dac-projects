@@ -116,6 +116,7 @@ const ICONS = {
   stop:      'M6.5 6.5h11v11h-11z',
   download:  'M12 3v12m0 0 4.5-4.5M12 15l-4.5-4.5M4 19.5h16',
   sparkle:   'M12 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2z',
+  folder:    'M3.5 6.5h6l2 2.5h9v10h-17zM3.5 6.5V5a.5.5 0 0 1 .5-.5h5l2 2.5',
 };
 
 export function icon(name, cls = '') {

@@ -88,6 +88,62 @@ send it by hand. Set the `SMTP_*` variables in `.env` to switch on real delivery
 Set `BASE_URL` in production. Offer links are built from it, and getting it wrong means
 sending candidates a link to `localhost`.
 
+## Storing recordings in Google Drive
+
+By default interview audio is written to `DATA_DIR/uploads`. Point
+`STORAGE_DRIVER` at `drive` instead and each answer is uploaded to a Google
+Drive folder you own, laid out so it is worth opening directly:
+
+```
+DAC Interview Submissions/
+  Machine Learning Intern/
+    Ishita Rao — app42/
+      Q1 — Walk us through who you are and why the DGU AI Cell interests you.webm
+      Q2 — Tell us about a project you finished.webm
+```
+
+Each file carries the candidate, the role and the full question in its Drive
+description, so the folder stands on its own — you can review submissions there
+without going near the admin console. The console still plays every recording
+inline, streaming it back through the app so the ownership check holds, and
+links out to the candidate's folder next to it.
+
+### Setting it up
+
+```bash
+npm run google-auth
+```
+
+That walks the consent flow and prints the four values to set. You need an
+OAuth client first — the script tells you which four screens in the Google
+Cloud console to click through, and it takes about two minutes.
+
+```bash
+STORAGE_DRIVER=drive
+GOOGLE_CLIENT_ID=…
+GOOGLE_CLIENT_SECRET=…
+GOOGLE_REFRESH_TOKEN=…
+```
+
+Leave `GDRIVE_FOLDER_ID` blank. The app then creates and finds its own folder,
+which is the only thing the narrow `drive.file` scope can reach — it can touch
+files it created and nothing else in your Drive. To use a folder that already
+exists, set `GDRIVE_FOLDER_ID` to its id and re-run the helper with
+`--scope drive`, which grants access to your whole Drive.
+
+The server checks Drive at boot and prints the folder it will use, so a wrong
+id or an expired token shows up immediately rather than halfway through
+somebody's interview. If an upload fails anyway, the recording is kept on local
+disk and flagged **on disk only** in the console rather than being lost.
+
+### A trap worth knowing about
+
+Service accounts have no storage quota. Uploading into a folder in a personal
+**My Drive** fails with `storageQuotaExceeded` no matter how you share it — the
+only accounts that work there are real ones, via the refresh token above. A
+service account is fine for a **Shared Drive**, and `GOOGLE_SERVICE_ACCOUNT_JSON`
+is there for that case.
+
 ## Deploying to Render
 
 A blueprint ships with the repo, so this is mostly clicking:
@@ -104,15 +160,21 @@ the audio interview needs a secure context or the browser will not release the
 microphone. Offer links are built from Render's own `RENDER_EXTERNAL_URL`, so
 they point at the right host without you setting anything.
 
-**Storage, and why it matters.** Render's free plan has no persistent disk. The
-database and every uploaded recording sit on an ephemeral filesystem and are
-wiped on each deploy and restart. The app re-seeds itself on boot, so the link
-always works and the sample roles come back — fine for a demo, not fine once
-real candidates are recording answers.
+**Storage, and why it matters.** Render's free plan has no persistent disk, so
+anything on the filesystem is wiped on each deploy and restart.
 
-Before a real hiring round, open `render.yaml` and make three changes: switch
-`plan: free` to `plan: starter`, uncomment the `disk:` block, and uncomment the
-`DATA_DIR` variable. Disks require a paid instance.
+Recordings are already handled: the blueprint sets `STORAGE_DRIVER=drive`, so
+interview audio goes to your Google Drive and survives restarts on any plan.
+Add the `GOOGLE_*` values from `npm run google-auth` under Environment.
+
+The database is still ephemeral on the free plan — applications, scores and
+offers reset on restart, though the admin account and sample roles come back on
+boot so the link keeps working. Fine for showing people the platform, not fine
+for a real hiring round.
+
+To make the database durable too, open `render.yaml` and make three changes:
+switch `plan: free` to `plan: starter`, uncomment the `disk:` block, and
+uncomment `DATA_DIR`. Disks require a paid instance.
 
 ## Testing
 
@@ -123,7 +185,11 @@ npm test
 Boots the server against a throwaway database and walks a candidate from registration
 through to an accepted offer — applying, the locked interview, audio upload and
 validation, submission, scoring, approval, the offer link, plus the access-control
-checks that keep one candidate out of another's application and audio.
+checks that keep one candidate out of another's application and audio. It then
+runs the Drive suite, which stands in for `fetch` to verify the storage path
+without real credentials: token caching, the 401 retry, the folder hierarchy,
+the multipart upload, Range pass-through, and the fallback that keeps a
+recording when Drive rejects it.
 
 There is a browser-level version of the same walk-through that drives Chromium with a
 synthetic microphone, so the recording path gets covered for real. It needs Playwright,
@@ -146,7 +212,8 @@ server/
   index.js            express app, static hosting, page routes
   config.js           every env var, with defaults
   db/                 schema.sql, connection, seed
-  lib/                auth, validation, mail, offer-letter rendering, stage machine
+  lib/                auth, validation, mail, offer letters, stage machine,
+                      Google auth + Drive client, storage drivers
   middleware/         session attach + guards, error handling
   routes/             auth · jobs · applications · questions · interview · offers · admin
 public/
@@ -157,7 +224,8 @@ public/
   js/                 api client, UI kit, shell + router, recorder, page apps
   css/                design tokens and page styles
   assets/             DAC logo, compact mark, favicon
-test/                 end-to-end suite
+scripts/              google-auth.js — mints a Drive refresh token
+test/                 end-to-end suites (API, browser, Drive)
 data/                 sqlite file + uploaded recordings (gitignored)
 ```
 
@@ -165,9 +233,11 @@ data/                 sqlite file + uploaded recordings (gitignored)
 live in `server/lib/stages.js` — the API refuses anything else, so you cannot skip a
 candidate from *Applied* straight to *Offer sent*.
 
-**Audio.** Recorded with `MediaRecorder`, stored on disk with only its filename in the
-database, and served back through a route that checks ownership on every request.
-Range requests are supported, so reviewers can scrub.
+**Audio.** Recorded with `MediaRecorder`, then handed to a storage driver —
+local disk or Google Drive — and served back through a route that checks
+ownership on every request. Range requests work either way; for Drive the
+client's `Range` header is passed straight through and the 206 mirrored back,
+so scrubbing does not mean buffering the whole recording.
 
 **Data you cannot lose by accident.** Deleting a role that has applications closes it
 instead. Deleting a question that has answers retires it instead. Nobody's recording
@@ -178,7 +248,8 @@ disappears because someone tidied up the board.
 - Put it behind HTTPS and set `COOKIE_SECURE=true`.
 - SQLite is fine for a cell-sized hiring round. Swap the driver in `server/db/` if you
   outgrow it.
-- Recordings sit on local disk. Mount a volume, or move `uploadDir` to object storage.
+- Recordings sit on local disk unless `STORAGE_DRIVER=drive` is set. On a host
+  without a persistent volume, set it.
 - Add rate limiting in front of `/api/auth/login` if this faces the open internet.
 
 ---

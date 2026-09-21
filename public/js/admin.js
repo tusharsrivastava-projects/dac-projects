@@ -54,7 +54,12 @@ async function viewOverview() {
     title: 'Hiring overview',
     sub: `${totals.applications} application${totals.applications === 1 ? '' : 's'} across ${totals.openRoles} open role${totals.openRoles === 1 ? '' : 's'}`,
     actions: [
-      el('button', { class: 'btn btn-ghost', type: 'button', html: `${icon('help')}Question bank`, onClick: () => go('/questions') }),
+      data.storage?.folderLink
+        ? el('a', {
+            class: 'btn btn-ghost', href: data.storage.folderLink, target: '_blank', rel: 'noopener',
+            html: `${icon('folder')}Submissions folder`,
+          })
+        : el('button', { class: 'btn btn-ghost', type: 'button', html: `${icon('help')}Question bank`, onClick: () => go('/questions') }),
       el('button', { class: 'btn btn-primary', type: 'button', html: `${icon('file')}Review applications`, onClick: () => go('/applications') }),
     ],
   });
@@ -73,6 +78,20 @@ async function viewOverview() {
   const maxStage = Math.max(1, ...pipeline.map((p) => p.count));
 
   render(el('div', { class: 'stack', style: 'gap:18px' }, [
+    data.storage?.driver === 'drive' && data.storage.folderLink
+      ? el('div', { class: 'alert alert-good' }, [
+          el('span', { html: icon('folder'), style: 'line-height:0' }),
+          el('span', { class: 'grow' }, [
+            el('span', { text: 'Recordings are filed into your Google Drive, one folder per candidate. ' }),
+            el('a', { href: data.storage.folderLink, target: '_blank', rel: 'noopener', text: 'Open the submissions folder' }),
+            el('span', { text: ' to listen there instead.' }),
+          ]),
+        ])
+      : el('div', { class: 'alert alert-warn' }, [
+          el('span', { html: icon('alert'), style: 'line-height:0' }),
+          el('span', { html: 'Recordings are being written to <strong>local disk</strong>. On a free Render instance that disk is wiped on every restart, so submitted interviews will not survive. Set <code>STORAGE_DRIVER=drive</code> to file them into Google Drive instead.' }),
+        ]),
+
     !data.smtpConfigured ? el('div', { class: 'alert alert-violet' }, [
       el('span', { html: icon('mail'), style: 'line-height:0' }),
       el('span', { html: 'No SMTP server is configured, so every letter and notification is being held in the <strong>Mail outbox</strong> instead of going out. Set <code>SMTP_HOST</code> to send for real.' }),
@@ -400,10 +419,16 @@ async function viewApplication({ id }) {
       el('div', { class: 'card' }, [
         el('div', { class: 'card-head' }, [
           el('h2', { class: 'grow', text: 'Recorded interview' }),
+          a.driveFolderLink
+            ? el('a', {
+                class: 'btn btn-ghost btn-sm', href: a.driveFolderLink, target: '_blank', rel: 'noopener',
+                html: `${icon('folder')}Open in Drive`,
+              })
+            : null,
           answers.length ? el('span', { class: 'tiny muted', text: `${a.evaluatedCount}/${answers.length} scored` }) : null,
         ]),
         answers.length
-          ? el('div', { class: 'card-body stack' }, answers.map((ans, i) => answerBlock(ans, i, a)))
+          ? el('div', { class: 'card-body stack' }, answers.map((ans, i) => answerBlock(ans, i, a, Boolean(a.driveFolderLink))))
           : emptyState({
               iconName: 'mic', title: 'No recordings yet',
               message: a.stage === 'interview'
@@ -442,7 +467,7 @@ async function viewApplication({ id }) {
   ]));
 }
 
-function answerBlock(ans, i, application) {
+function answerBlock(ans, i, application, driveExpected = false) {
   const scoreInput = el('input', {
     class: 'input input-sm score-input', type: 'number', min: '0', max: '10', step: '0.5',
     value: ans.score ?? '', placeholder: '–',
@@ -476,7 +501,19 @@ function answerBlock(ans, i, application) {
     ]),
     el('div', { class: 'answer-body stack-sm' }, [
       el('audio', { controls: true, preload: 'none', src: ans.audioUrl }),
-      el('div', { class: 'tiny muted', text: `${fmtClock(ans.durationSeconds)} · ${fmtBytes(ans.sizeBytes)} · recorded ${fmtAgo(ans.createdAt)}${ans.evaluatedBy ? ` · scored by ${ans.evaluatedBy}` : ''}` }),
+      el('div', { class: 'row-wrap', style: 'gap:8px' }, [
+        el('span', { class: 'tiny muted grow', text: `${fmtClock(ans.durationSeconds)} · ${fmtBytes(ans.sizeBytes)} · recorded ${fmtAgo(ans.createdAt)}${ans.evaluatedBy ? ` · scored by ${ans.evaluatedBy}` : ''}` }),
+        ans.driveLink
+          ? el('a', { class: 'tiny', href: ans.driveLink, target: '_blank', rel: 'noopener', text: 'Open in Drive ↗' })
+          : null,
+        ans.storage === 'local' && driveExpected
+          ? el('span', {
+              class: 'pill tone-warn',
+              title: 'The Drive upload failed for this one, so it is only on the server disk. Download it before the next restart.',
+              text: 'on disk only',
+            })
+          : null,
+      ]),
       feedbackInput,
       el('div', { class: 'row' }, [
         el('label', { class: 'label', for: '', text: 'Score' }),

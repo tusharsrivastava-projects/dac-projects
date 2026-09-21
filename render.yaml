@@ -8,14 +8,21 @@
 # ─────────────────────────────────────────────────────────────────────────────
 # STORAGE — read this before a real hiring round.
 #
-# The free plan has NO persistent disk. The SQLite database and every uploaded
-# recording live on an ephemeral filesystem and are wiped on each deploy and
-# restart. That is fine for a demo: the app re-seeds itself with the admin
-# account and the sample roles on boot, so the link always works. It is NOT
-# fine once candidates are recording real answers.
+# The free plan has NO persistent disk. Anything written to the filesystem is
+# wiped on each deploy and restart.
 #
-# To make it durable, uncomment the `disk:` block below and change `plan: free`
-# to `plan: starter`. Disks need a paid instance (~$7/mo plus $0.25/GB).
+# Recordings: handled. STORAGE_DRIVER is set to 'drive' below, so interview
+# audio goes straight to a Google Drive folder you own and survives restarts
+# regardless of the plan. Fill in the GOOGLE_* values and it just works.
+#
+# The database: still ephemeral on the free plan. Applications, scores and
+# offers reset on restart, though the app re-seeds the admin account and the
+# sample roles so the link always works. Fine for a demo; not fine for a real
+# hiring round.
+#
+# To make the database durable too, uncomment the `disk:` block below, change
+# `plan: free` to `plan: starter`, and uncomment DATA_DIR. Disks need a paid
+# instance (~$7/mo plus $0.25/GB).
 # ─────────────────────────────────────────────────────────────────────────────
 
 services:
@@ -66,6 +73,26 @@ services:
       # Set to 'false' if you want an empty board with no sample roles.
       - key: SEED_DEMO_DATA
         value: 'true'
+
+      # ── Where recordings are stored ────────────────────────────────────────
+      # 'drive' is what makes the free plan workable: recordings go to your
+      # Google Drive instead of a disk that gets wiped on every restart.
+      # Run `npm run google-auth` locally to mint the token, then paste the
+      # three GOOGLE_* values in here as secrets.
+      - key: STORAGE_DRIVER
+        value: drive
+      - key: GDRIVE_FOLDER_NAME
+        value: DAC Interview Submissions
+      - key: GDRIVE_FOLDER_ID
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_REFRESH_TOKEN
+        sync: false
+      - key: GOOGLE_DRIVE_SCOPE
+        value: https://www.googleapis.com/auth/drive.file
 
       - key: MAX_AUDIO_MB
         value: '25'

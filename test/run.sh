@@ -24,3 +24,7 @@ if ! curl -sf "http://localhost:$PORT/api/health" > /dev/null; then
 fi
 
 BASE="http://localhost:$PORT" node test/e2e.mjs
+
+echo
+echo "── Google Drive storage ──────────────────────────────────────────────"
+node test/drive.mjs

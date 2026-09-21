@@ -13,6 +13,31 @@ db.pragma('foreign_keys = ON');
 const schemaPath = path.join(path.dirname(fileURLToPath(import.meta.url)), 'schema.sql');
 db.exec(fs.readFileSync(schemaPath, 'utf8'));
 
+/**
+ * Adds a column if the table does not have it yet. SQLite has no
+ * ADD COLUMN IF NOT EXISTS, and this keeps databases created by an earlier
+ * version working without anyone running a migration by hand.
+ */
+function ensureColumn(table, column, definition) {
+  const columns = db.prepare(`PRAGMA table_info(${table})`).all();
+  if (columns.some((c) => c.name === column)) return false;
+  db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+  return true;
+}
+
+const MIGRATIONS = [
+  ['answers', 'storage', "TEXT NOT NULL DEFAULT 'local'"],
+  ['answers', 'drive_file_id', 'TEXT'],
+  ['answers', 'drive_link', 'TEXT'],
+  ['applications', 'drive_folder_id', 'TEXT'],
+  ['applications', 'drive_folder_link', 'TEXT'],
+];
+
+const applied = MIGRATIONS.filter(([t, c, d]) => ensureColumn(t, c, d));
+if (applied.length) {
+  console.log(`Applied ${applied.length} schema migration(s): ${applied.map(([t, c]) => `${t}.${c}`).join(', ')}`);
+}
+
 /** Run fn inside a transaction; nested calls reuse the outer transaction. */
 export const tx = (fn) => db.transaction(fn);
 

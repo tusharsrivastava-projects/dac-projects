@@ -43,6 +43,25 @@ export const config = {
     from: process.env.MAIL_FROM || 'DAC Talent <no-reply@dgu-ai-cell.local>',
   },
 
+  // Where interview recordings live. 'drive' files them into a Google Drive
+  // folder you own, which is the point: free Render instances have no
+  // persistent disk, so anything written locally is gone on the next restart.
+  storageDriver: (process.env.STORAGE_DRIVER || 'local').toLowerCase(),
+
+  drive: {
+    folderId: process.env.GDRIVE_FOLDER_ID || '',
+    rootFolderName: process.env.GDRIVE_FOLDER_NAME || 'DAC Interview Submissions',
+    // OAuth against a real account — required for a folder in a personal My Drive.
+    clientId: process.env.GOOGLE_CLIENT_ID || '',
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
+    refreshToken: process.env.GOOGLE_REFRESH_TOKEN || '',
+    // Service account — only viable for a Shared Drive.
+    serviceAccountRaw: process.env.GOOGLE_SERVICE_ACCOUNT_JSON || '',
+    scope: process.env.GOOGLE_DRIVE_SCOPE || 'https://www.googleapis.com/auth/drive',
+    // Keep a copy on local disk as well. Useful when the disk does persist.
+    keepLocalCopy: String(process.env.GDRIVE_KEEP_LOCAL_COPY || '') === 'true',
+  },
+
   org: {
     name: process.env.ORG_NAME || 'DAC — DGU AI Cell',
     shortName: 'DAC',

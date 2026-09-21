@@ -6,6 +6,7 @@ import { db } from './db/index.js';
 import { bootstrap, isEmpty, KNOWN_DEFAULT_PASSWORDS } from './db/bootstrap.js';
 import { purgeExpiredSessions } from './lib/auth.js';
 import { smtpConfigured } from './lib/mailer.js';
+import { checkStorage, describeDriver, usingDrive } from './lib/storage.js';
 import { errorHandler, notFoundHandler } from './middleware/errors.js';
 import { attachUser } from './middleware/session.js';
 import { adminRouter } from './routes/admin.js';
@@ -84,13 +85,28 @@ const purged = purgeExpiredSessions();
 if (purged) console.log(`Cleared ${purged} expired session(s).`);
 setInterval(purgeExpiredSessions, 6 * 60 * 60 * 1000).unref();
 
-const server = app.listen(config.port, config.host, () => {
+const server = app.listen(config.port, config.host, async () => {
   console.log(`\n  DAC HRM Platform`);
   console.log(`  ────────────────────────────────────────`);
   console.log(`  http://localhost:${config.port}`);
   console.log(`  db     ${config.dbFile}`);
+  console.log(`  audio  ${describeDriver()}`);
   console.log(`  mail   ${smtpConfigured() ? 'SMTP configured' : 'outbox only (no SMTP_HOST set)'}`);
   console.log('');
+
+  // Checked here rather than on the first upload, so a wrong folder id or an
+  // expired refresh token is obvious at boot instead of halfway through
+  // somebody's interview.
+  if (usingDrive()) {
+    const result = await checkStorage();
+    if (result.ok) {
+      console.log(`  Drive folder ready${result.created ? ' (created just now)' : ''}: ${result.name}`);
+      console.log(`  ${result.link}\n`);
+    } else {
+      console.error(`\n  !!! Google Drive is not usable: ${result.error}`);
+      console.error('  !!! Recordings will fall back to local disk, which a free Render instance wipes on restart.\n');
+    }
+  }
 });
 
 const shutdown = (signal) => {
