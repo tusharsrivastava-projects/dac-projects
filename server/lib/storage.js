@@ -25,10 +25,14 @@ export function driveCredentials() {
   return credentials;
 }
 
-export const describeDriver = () =>
-  usingDrive()
-    ? `Google Drive (${config.drive.refreshToken ? 'OAuth account' : 'service account'})`
-    : `local disk (${config.uploadDir})`;
+export function describeDriver() {
+  if (!usingDrive()) return `local disk (${config.uploadDir})`;
+  if (config.drive.refreshToken) return 'Google Drive (OAuth account)';
+  if (config.drive.serviceAccountRaw) return 'Google Drive (service account)';
+  // Saying "service account" here would send someone off to mint a key, which
+  // is the wrong fix when the folder lives in a personal My Drive.
+  return 'Google Drive (no credentials set)';
+}
 
 const localPath = (file) => path.join(config.uploadDir, file);
 
