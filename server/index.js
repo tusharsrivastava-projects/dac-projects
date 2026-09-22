@@ -6,7 +6,7 @@ import { db } from './db/index.js';
 import { bootstrap, isEmpty, KNOWN_DEFAULT_PASSWORDS } from './db/bootstrap.js';
 import { purgeExpiredSessions } from './lib/auth.js';
 import { smtpConfigured } from './lib/mailer.js';
-import { checkStorage, describeDriver, usingDrive } from './lib/storage.js';
+import { checkStorage, describeDriver, setLastCheck, usingDrive } from './lib/storage.js';
 import { errorHandler, notFoundHandler } from './middleware/errors.js';
 import { attachUser } from './middleware/session.js';
 import { adminRouter } from './routes/admin.js';
@@ -99,6 +99,7 @@ const server = app.listen(config.port, config.host, async () => {
   // somebody's interview.
   if (usingDrive()) {
     const result = await checkStorage();
+    setLastCheck(result);
     if (result.ok) {
       console.log(`  Drive folder ready${result.created ? ' (created just now)' : ''}: ${result.name}`);
       console.log(`  ${result.link}\n`);

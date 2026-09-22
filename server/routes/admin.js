@@ -1,7 +1,7 @@
 import express from 'express';
 import { db } from '../db/index.js';
 import { smtpConfigured } from '../lib/mailer.js';
-import { describeDriver, submissionsFolderLink, usingDrive } from '../lib/storage.js';
+import { storageStatus } from '../lib/storage.js';
 import { STAGES } from '../lib/stages.js';
 import { wrap } from '../lib/http.js';
 import * as v from '../lib/validate.js';
@@ -47,11 +47,7 @@ adminRouter.get('/overview', wrap((_req, res) => {
   res.json({
     totals, pipeline, perRole, recent,
     smtpConfigured: smtpConfigured(),
-    storage: {
-      driver: usingDrive() ? 'drive' : 'local',
-      label: describeDriver(),
-      folderLink: submissionsFolderLink(),
-    },
+    storage: storageStatus(),
   });
 }));
 

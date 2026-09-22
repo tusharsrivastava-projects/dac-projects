@@ -6,9 +6,25 @@ import {
 } from '../lib/auth.js';
 import { conflict, unauthorized, wrap } from '../lib/http.js';
 import * as v from '../lib/validate.js';
+import { loginKey, rateLimit } from '../middleware/rateLimit.js';
 import { requireAuth } from '../middleware/session.js';
 
 export const authRouter = express.Router();
+
+// Only failed sign-ins count, so someone legitimately signing in on several
+// devices is never locked out by their own success.
+const loginLimit = rateLimit({
+  max: 8, windowMs: 15 * 60 * 1000, key: loginKey, onlyFailures: true,
+  message: 'Too many failed sign-in attempts. Wait a few minutes and try again.',
+});
+const registerLimit = rateLimit({
+  max: 10, windowMs: 60 * 60 * 1000,
+  message: 'Too many accounts created from here. Try again later.',
+});
+const passwordLimit = rateLimit({
+  max: 5, windowMs: 15 * 60 * 1000, onlyFailures: true,
+  message: 'Too many attempts. Wait a few minutes and try again.',
+});
 
 const publicUser = (u) => ({
   id: u.id,
@@ -18,7 +34,7 @@ const publicUser = (u) => ({
   role: u.role,
 });
 
-authRouter.post('/register', wrap((req, res) => {
+authRouter.post('/register', registerLimit, wrap((req, res) => {
   const fullName = v.str(req.body.fullName, 'Full name', { min: 2, max: 120 });
   const emailAddr = v.email(req.body.email);
   const phone = v.str(req.body.phone, 'Phone', { required: false, max: 30 });
@@ -40,7 +56,7 @@ authRouter.post('/register', wrap((req, res) => {
   res.status(201).json({ user: publicUser({ id, full_name: fullName, email: emailAddr, phone, role: 'candidate' }) });
 }));
 
-authRouter.post('/login', wrap((req, res) => {
+authRouter.post('/login', loginLimit, wrap((req, res) => {
   const emailAddr = v.email(req.body.email);
   const pass = v.str(req.body.password, 'Password', { trim: false, max: 200 });
 
@@ -77,7 +93,7 @@ authRouter.patch('/me', requireAuth, wrap((req, res) => {
   res.json({ user: { ...req.user, fullName, phone } });
 }));
 
-authRouter.post('/me/password', requireAuth, wrap((req, res) => {
+authRouter.post('/me/password', requireAuth, passwordLimit, wrap((req, res) => {
   const current = v.str(req.body.currentPassword, 'Current password', { trim: false, max: 200 });
   const next = v.password(req.body.newPassword, 'New password');
 

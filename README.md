@@ -160,21 +160,17 @@ the audio interview needs a secure context or the browser will not release the
 microphone. Offer links are built from Render's own `RENDER_EXTERNAL_URL`, so
 they point at the right host without you setting anything.
 
-**Storage, and why it matters.** Render's free plan has no persistent disk, so
-anything on the filesystem is wiped on each deploy and restart.
+**Storage.** The blueprint is set up to survive restarts. Recordings go to your
+Google Drive (`STORAGE_DRIVER=drive`), and the database sits on a 5GB
+persistent disk mounted at `/var/data`, so applications, scores and offers
+outlive deploys.
 
-Recordings are already handled: the blueprint sets `STORAGE_DRIVER=drive`, so
-interview audio goes to your Google Drive and survives restarts on any plan.
-Add the `GOOGLE_*` values from `npm run google-auth` under Environment.
-
-The database is still ephemeral on the free plan — applications, scores and
-offers reset on restart, though the admin account and sample roles come back on
-boot so the link keeps working. Fine for showing people the platform, not fine
-for a real hiring round.
-
-To make the database durable too, open `render.yaml` and make three changes:
-switch `plan: free` to `plan: starter`, uncomment the `disk:` block, and
-uncomment `DATA_DIR`. Disks require a paid instance.
+Disks require a paid instance, which is why the plan is `starter` — roughly
+$7/mo plus $0.25/GB. To run it free instead, change `plan: starter` to
+`plan: free`, delete the `disk:` block and drop the `DATA_DIR` variable.
+Recordings still go to Drive, but the database resets on every restart, so
+applications and scores are lost. The admin account and sample roles come back
+on boot, so the link keeps working — demo only.
 
 ## Testing
 
@@ -250,7 +246,9 @@ disappears because someone tidied up the board.
   outgrow it.
 - Recordings sit on local disk unless `STORAGE_DRIVER=drive` is set. On a host
   without a persistent volume, set it.
-- Add rate limiting in front of `/api/auth/login` if this faces the open internet.
+- Sign-in, registration and password changes are rate limited in memory. That
+  is per-process, so a multi-instance deploy gets one bucket per instance —
+  fine for one box, worth moving to a shared store if you scale out.
 
 ---
 

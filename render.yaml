@@ -8,39 +8,39 @@
 # ─────────────────────────────────────────────────────────────────────────────
 # STORAGE — read this before a real hiring round.
 #
-# The free plan has NO persistent disk. Anything written to the filesystem is
-# wiped on each deploy and restart.
+# STORAGE — this is set up to survive restarts.
 #
-# Recordings: handled. STORAGE_DRIVER is set to 'drive' below, so interview
-# audio goes straight to a Google Drive folder you own and survives restarts
-# regardless of the plan. Fill in the GOOGLE_* values and it just works.
+# Recordings go to your Google Drive (STORAGE_DRIVER below), so interview audio
+# is safe regardless of plan or disk. Fill in the GOOGLE_* values from
+# `npm run google-auth`.
 #
-# The database: still ephemeral on the free plan. Applications, scores and
-# offers reset on restart, though the app re-seeds the admin account and the
-# sample roles so the link always works. Fine for a demo; not fine for a real
-# hiring round.
+# The database sits on a persistent disk, so applications, scores and offers
+# survive deploys and restarts. Disks require a paid instance, which is why the
+# plan is `starter` (~$7/mo, plus $0.25/GB for the disk).
 #
-# To make the database durable too, uncomment the `disk:` block below, change
-# `plan: free` to `plan: starter`, and uncomment DATA_DIR. Disks need a paid
-# instance (~$7/mo plus $0.25/GB).
+# WANT IT FREE INSTEAD? Change `plan: starter` to `plan: free`, delete the
+# `disk:` block, and remove the DATA_DIR variable. Everything still runs and
+# recordings still go to Drive — but the database resets on every restart, so
+# applications and scores are lost. The app re-seeds the admin account and the
+# sample roles on boot, so the link keeps working. Demo only.
 # ─────────────────────────────────────────────────────────────────────────────
 
 services:
   - type: web
     name: dac-hrm
     runtime: node
-    plan: free
+    plan: starter
     region: singapore          # closest Render region to Dehradun
     branch: claude/dac-hrm-platform-xploch
     buildCommand: npm ci --omit=dev
     startCommand: npm start
     healthCheckPath: /api/health
 
-    # Persistent storage — uncomment together with `plan: starter` above.
-    # disk:
-    #   name: dac-hrm-data
-    #   mountPath: /var/data
-    #   sizeGB: 5
+    # Keeps the database and any locally-held recordings across restarts.
+    disk:
+      name: dac-hrm-data
+      mountPath: /var/data
+      sizeGB: 5
 
     envVars:
       - key: NODE_ENV
@@ -50,10 +50,10 @@ services:
       - key: COOKIE_SECURE
         value: 'true'
 
-      # Where the database and recordings live. Leave commented on the free
-      # plan; uncomment it at the same time as the disk block above.
-      # - key: DATA_DIR
-      #   value: /var/data
+      # Points at the mounted disk above. Drop this if you move to the free
+      # plan, so the app falls back to its in-repo ./data directory.
+      - key: DATA_DIR
+        value: /var/data
 
       # BASE_URL is intentionally unset — the app falls back to
       # RENDER_EXTERNAL_URL, so offer links point at the right host

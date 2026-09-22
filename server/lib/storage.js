@@ -61,24 +61,51 @@ const answerFileName = (number, prompt, ext) => {
   return `Q${number} — ${stem}${ext}`;
 };
 
+/**
+ * Folders in flight, keyed by application id. Two answers uploaded at the same
+ * time would otherwise both miss the cached id — the first one has not written
+ * it back yet — and each create their own candidate folder.
+ */
+const pendingFolders = new Map();
+
 /** Per-application folder, cached on the application row so we ask Drive once. */
 async function ensureApplicationFolder(application) {
   if (application.drive_folder_id) return application.drive_folder_id;
 
-  const creds = driveCredentials();
-  const root = await ensureRoot();
-  const roleFolder = await drive.ensureFolder(creds, safeName(application.job_title), root);
-  const folderId = await drive.ensureFolder(
-    creds,
-    `${safeName(application.candidate_name)} — app${application.id}`,
-    roleFolder,
-  );
+  // Another request may have finished since this row was read.
+  const fresh = db.prepare('SELECT drive_folder_id, drive_folder_link FROM applications WHERE id = ?')
+    .get(application.id);
+  if (fresh?.drive_folder_id) {
+    application.drive_folder_id = fresh.drive_folder_id;
+    application.drive_folder_link = fresh.drive_folder_link;
+    return fresh.drive_folder_id;
+  }
 
-  db.prepare('UPDATE applications SET drive_folder_id = ?, drive_folder_link = ? WHERE id = ?')
-    .run(folderId, drive.folderLink(folderId), application.id);
-  application.drive_folder_id = folderId;
-  application.drive_folder_link = drive.folderLink(folderId);
-  return folderId;
+  if (pendingFolders.has(application.id)) return pendingFolders.get(application.id);
+
+  const work = (async () => {
+    const creds = driveCredentials();
+    const root = await ensureRoot();
+    const roleFolder = await drive.ensureFolder(creds, safeName(application.job_title), root);
+    const folderId = await drive.ensureFolder(
+      creds,
+      `${safeName(application.candidate_name)} — app${application.id}`,
+      roleFolder,
+    );
+
+    db.prepare('UPDATE applications SET drive_folder_id = ?, drive_folder_link = ? WHERE id = ?')
+      .run(folderId, drive.folderLink(folderId), application.id);
+    application.drive_folder_id = folderId;
+    application.drive_folder_link = drive.folderLink(folderId);
+    return folderId;
+  })();
+
+  pendingFolders.set(application.id, work);
+  try {
+    return await work;
+  } finally {
+    pendingFolders.delete(application.id);
+  }
 }
 
 /**
@@ -183,3 +210,14 @@ export async function checkStorage() {
 
 export const submissionsFolderLink = () =>
   (usingDrive() && rootFolderId) ? drive.folderLink(rootFolderId) : null;
+
+/** Last boot-check result, so the console can say *why* Drive is not working. */
+let lastCheck = null;
+export const setLastCheck = (result) => { lastCheck = result; };
+export const storageStatus = () => ({
+  driver: usingDrive() ? 'drive' : 'local',
+  label: describeDriver(),
+  folderLink: submissionsFolderLink(),
+  ok: usingDrive() ? Boolean(lastCheck?.ok) : true,
+  error: lastCheck?.ok === false ? lastCheck.error : null,
+});

@@ -78,19 +78,7 @@ async function viewOverview() {
   const maxStage = Math.max(1, ...pipeline.map((p) => p.count));
 
   render(el('div', { class: 'stack', style: 'gap:18px' }, [
-    data.storage?.driver === 'drive' && data.storage.folderLink
-      ? el('div', { class: 'alert alert-good' }, [
-          el('span', { html: icon('folder'), style: 'line-height:0' }),
-          el('span', { class: 'grow' }, [
-            el('span', { text: 'Recordings are filed into your Google Drive, one folder per candidate. ' }),
-            el('a', { href: data.storage.folderLink, target: '_blank', rel: 'noopener', text: 'Open the submissions folder' }),
-            el('span', { text: ' to listen there instead.' }),
-          ]),
-        ])
-      : el('div', { class: 'alert alert-warn' }, [
-          el('span', { html: icon('alert'), style: 'line-height:0' }),
-          el('span', { html: 'Recordings are being written to <strong>local disk</strong>. On a free Render instance that disk is wiped on every restart, so submitted interviews will not survive. Set <code>STORAGE_DRIVER=drive</code> to file them into Google Drive instead.' }),
-        ]),
+    storageBanner(data.storage),
 
     !data.smtpConfigured ? el('div', { class: 'alert alert-violet' }, [
       el('span', { html: icon('mail'), style: 'line-height:0' }),
@@ -158,6 +146,40 @@ async function viewOverview() {
       ]),
     ]),
   ]));
+}
+
+/**
+ * Three states worth telling apart: Drive working, Drive configured but
+ * broken, and plain local disk. The middle one used to render the same
+ * "set STORAGE_DRIVER=drive" advice even though it was already set.
+ */
+function storageBanner(storage) {
+  if (storage?.driver === 'drive' && storage.ok && storage.folderLink) {
+    return el('div', { class: 'alert alert-good' }, [
+      el('span', { html: icon('folder'), style: 'line-height:0' }),
+      el('span', { class: 'grow' }, [
+        el('span', { text: 'Recordings are filed into your Google Drive, one folder per candidate. ' }),
+        el('a', { href: storage.folderLink, target: '_blank', rel: 'noopener', text: 'Open the submissions folder' }),
+        el('span', { text: ' to listen there instead.' }),
+      ]),
+    ]);
+  }
+
+  if (storage?.driver === 'drive') {
+    return el('div', { class: 'alert alert-error' }, [
+      el('span', { html: icon('alert'), style: 'line-height:0' }),
+      el('span', { class: 'grow' }, [
+        el('strong', { text: 'Google Drive is switched on but not working, ' }),
+        el('span', { text: 'so recordings are falling back to local disk — which a free instance wipes on restart. ' }),
+        storage.error ? el('span', { class: 'mono', style: 'display:block;margin-top:6px', text: storage.error }) : null,
+      ]),
+    ]);
+  }
+
+  return el('div', { class: 'alert alert-warn' }, [
+    el('span', { html: icon('alert'), style: 'line-height:0' }),
+    el('span', { html: 'Recordings are being written to <strong>local disk</strong>. On a free Render instance that disk is wiped on every restart, so submitted interviews will not survive. Set <code>STORAGE_DRIVER=drive</code> to file them into Google Drive instead.' }),
+  ]);
 }
 
 const humanAction = (a) => ({

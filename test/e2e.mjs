@@ -193,6 +193,37 @@ ok('candidate cannot list all applications', r.status === 403);
 r = await other('POST', '/api/questions', { prompt: 'x'.repeat(20) }, { allowFail: true });
 ok('candidate cannot add questions', r.status === 403);
 
+console.log('\n10. rate limiting');
+{
+  const attacker = client('attacker');
+  let blockedAt = null;
+  for (let i = 1; i <= 12; i++) {
+    const res = await attacker('POST', '/api/auth/login',
+      { email: 'admin@dgu.ac.in', password: `wrong-guess-${i}` }, { allowFail: true });
+    if (res.status === 429) { blockedAt = i; break; }
+  }
+  ok('blocks repeated failed sign-ins', blockedAt !== null && blockedAt <= 10, `gave up after ${blockedAt ?? '12+'} tries`);
+
+  // Even the *correct* password is refused while the window is open.
+  const blocked = await attacker('POST', '/api/auth/login',
+    { email: 'admin@dgu.ac.in', password: 'dac-admin-2026' }, { allowFail: true });
+  ok('keeps blocking while the window is open', blocked.status === 429);
+  ok('says to try again later', /try again/i.test(blocked.json?.error || ''), JSON.stringify(blocked.json));
+
+  const withHeader = await fetch(`${BASE}/api/auth/login`, {
+    method: 'POST', headers: { 'content-type': 'application/json', cookie: jars.attacker },
+    body: JSON.stringify({ email: 'admin@dgu.ac.in', password: 'nope' }),
+  });
+  ok('sets Retry-After', Number(withHeader.headers.get('retry-after')) > 0, withHeader.headers.get('retry-after'));
+
+  // A different account from the same client is counted separately, so one
+  // person being locked out does not lock out everyone behind the same IP.
+  const other = client('other-account');
+  const fine = await other('POST', '/api/auth/login',
+    { email: 'aarav.demo@dgu.ac.in', password: 'candidate123' }, { allowFail: true });
+  ok('does not punish a different account', fine.status === 200, String(fine.status));
+}
+
 r = await cand('POST', '/api/auth/logout');
 r = await cand('GET', '/api/auth/me');
 ok('logout clears session', r.json.user === null);
