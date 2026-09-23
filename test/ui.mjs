@@ -324,11 +324,18 @@ console.log('\n8b. sign-in options');
   const visitor = await newCtx('visitor');
   await visitor.goto(BASE, { waitUntil: 'networkidle' });
   await visitor.waitForTimeout(600);
-  const configured = process.env.GOOGLE_CLIENT_ID ? true : false;
-  const shown = await visitor.locator('#google-block:not(.hidden)').count() === 1;
-  ok(configured ? 'Google sign-in is offered' : 'Google sign-in stays hidden when unconfigured',
-     shown === configured, `configured=${configured} shown=${shown}`);
-  ok('email sign-in is always available', await visitor.locator('#login-form').count() === 1);
+  ok('Google sign-in is offered', await visitor.locator('#google-block:not(.hidden)').count() === 1);
+  ok('the button is visible', await visitor.locator('#google-btn').isVisible());
+  ok('and points at the sign-in route',
+     (await visitor.locator('#google-btn').getAttribute('href')) === '/api/auth/google');
+  ok('email sign-in is still there too', await visitor.locator('#login-form').count() === 1);
+  await snap(visitor, 'signin-google');
+
+  // the message a candidate sees when they back out at Google
+  await visitor.goto(`${BASE}/?google_error=${encodeURIComponent('You cancelled the Google sign-in.')}`, { waitUntil: 'networkidle' });
+  await visitor.waitForTimeout(600);
+  ok('a cancelled sign-in is explained', /cancelled the Google sign-in/.test(await visitor.locator('#auth-alert').innerText()));
+  ok('and the error is cleared from the address bar', !visitor.url().includes('google_error'));
 }
 
 console.log('\n9. mobile + logout');

@@ -239,6 +239,43 @@ ok('candidate cannot list all applications', r.status === 403);
 r = await other('POST', '/api/questions', { prompt: 'x'.repeat(20) }, { allowFail: true });
 ok('candidate cannot add questions', r.status === 403);
 
+console.log('\n9b. google sign-in routes');
+{
+  r = await guest('GET', '/api/auth/google/available');
+  ok('reports itself available', r.json?.available === true, JSON.stringify(r.json));
+
+  const res = await fetch(`${BASE}/api/auth/google`, { redirect: 'manual' });
+  ok('sign-in redirects to Google', res.status === 302, String(res.status));
+  const consent = new URL(res.headers.get('location'));
+  ok('at the real consent endpoint', consent.origin === 'https://accounts.google.com', consent.origin);
+  ok('with our client id', consent.searchParams.get('client_id') === 'test-client.apps.googleusercontent.com');
+  ok('asking only for identity', consent.searchParams.get('scope') === 'openid email profile',
+     consent.searchParams.get('scope'));
+  ok('and a signed state', (consent.searchParams.get('state') || '').includes('.'));
+
+  const callback = async (qs) => {
+    const c = await fetch(`${BASE}/api/auth/google/callback?${qs}`, { redirect: 'manual' });
+    return { status: c.status, location: c.headers.get('location') || '' };
+  };
+
+  let cb = await callback('error=access_denied');
+  ok('a cancelled sign-in comes back with a message', cb.status === 302 && /google_error=/.test(cb.location), cb.location);
+  ok('and says it was cancelled', /cancelled/i.test(decodeURIComponent(cb.location)), decodeURIComponent(cb.location));
+
+  cb = await callback('code=x&state=forged.signature');
+  ok('a forged state is refused', /google_error=/.test(cb.location) && /verified|malformed/i.test(decodeURIComponent(cb.location)),
+     decodeURIComponent(cb.location));
+
+  cb = await callback('code=x');
+  ok('a missing state is refused', /google_error=/.test(cb.location), cb.location);
+
+  // no session is handed out by any of those
+  const sneak = client('sneak');
+  await sneak('GET', '/api/auth/google/callback?error=access_denied', null, { allowFail: true });
+  r = await sneak('GET', '/api/auth/me');
+  ok('none of that signs anybody in', r.json?.user === null, JSON.stringify(r.json));
+}
+
 console.log('\n10. role management');
 {
   // create
