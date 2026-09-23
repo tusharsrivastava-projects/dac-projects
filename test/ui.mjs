@@ -113,6 +113,58 @@ await admin.click('button[form=q-form]');
 await admin.waitForTimeout(1200);
 ok('question added to bank', await admin.getByText('What is the last thing you built').count() > 0);
 
+console.log('\n4b. admin adds a role, changes its openings, removes it');
+await admin.click('a[data-path="/roles"]');
+await admin.waitForSelector('table.data tbody tr');
+const rolesBefore = await admin.locator('table.data tbody tr').count();
+await admin.getByRole('button', { name: /New role/ }).click();
+await admin.waitForSelector('#role-form');
+await admin.fill('#rl-title', 'Speech Research Assistant');
+await admin.fill('#rl-openings', '3');
+await admin.fill('#rl-stipend', '₹12,000 / month');
+await admin.fill('#rl-summary', 'Work on the speech stack behind the audio interview.');
+await snap(admin, 'admin-role-form');
+await admin.click('button[form=role-form]');
+await admin.waitForTimeout(1200);
+ok('role appears in the table', await admin.getByText('Speech Research Assistant').count() > 0);
+ok('role count went up', await admin.locator('table.data tbody tr').count() === rolesBefore + 1);
+
+const roleRow = admin.locator('table.data tbody tr', { hasText: 'Speech Research Assistant' }).first();
+ok('openings shown as entered', (await roleRow.innerText()).includes('3'), await roleRow.innerText());
+
+await roleRow.locator('button[title="Edit"]').click();
+await admin.waitForSelector('#role-form');
+await admin.fill('#rl-openings', '7');
+await admin.click('button[form=role-form]');
+await admin.waitForTimeout(1200);
+ok('openings updated to 7',
+   (await admin.locator('table.data tbody tr', { hasText: 'Speech Research Assistant' }).first().innerText()).includes('7'));
+await snap(admin, 'admin-roles');
+
+await admin.locator('table.data tbody tr', { hasText: 'Speech Research Assistant' }).first()
+  .locator('button[title="Delete or close"]').click();
+await admin.waitForSelector('.modal');
+await admin.locator('.modal-foot button', { hasText: /Delete role/ }).click();
+await admin.waitForTimeout(1300);
+ok('unused role is deleted', await admin.getByText('Speech Research Assistant').count() === 0);
+
+// a role candidates have applied to must be closed instead, never deleted
+const usedRow = admin.locator('table.data tbody tr', { hasText: 'Machine Learning Intern' }).first();
+await usedRow.locator('button[title="Delete or close"]').click();
+await admin.waitForSelector('.modal');
+const warning = await admin.locator('.modal-body').innerText();
+ok('warns that applications reference it', /closed rather than deleted/i.test(warning), warning.slice(0, 90));
+await admin.locator('.modal-foot button', { hasText: /Close role/ }).click();
+await admin.waitForTimeout(1300);
+ok('role survives as closed', await admin.getByText('Machine Learning Intern').count() > 0);
+// put it back so the rest of the walk-through still has an open role
+await admin.locator('table.data tbody tr', { hasText: 'Machine Learning Intern' }).first()
+  .locator('button[title="Edit"]').click();
+await admin.waitForSelector('#role-form');
+await admin.selectOption('#rl-status', 'open');
+await admin.click('button[form=role-form]');
+await admin.waitForTimeout(1200);
+
 console.log('\n5. candidate records the interview');
 await cand.goto(`${BASE}/app#/interview`, { waitUntil: 'networkidle' });
 await cand.waitForTimeout(800);

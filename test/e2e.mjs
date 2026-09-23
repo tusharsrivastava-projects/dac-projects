@@ -193,7 +193,63 @@ ok('candidate cannot list all applications', r.status === 403);
 r = await other('POST', '/api/questions', { prompt: 'x'.repeat(20) }, { allowFail: true });
 ok('candidate cannot add questions', r.status === 403);
 
-console.log('\n10. rate limiting');
+console.log('\n10. role management');
+{
+  // create
+  r = await admin('POST', '/api/jobs', {
+    title: 'Speech Research Assistant', employmentType: 'Internship', openings: 3,
+    stipend: '₹12,000 / month', summary: 'Work on the speech stack behind the audio interview.',
+    description: 'Collect and clean speech data, then measure what the models do with it.',
+  });
+  const newJob = r.json?.job;
+  ok('admin creates a role', r.status === 201 && newJob?.openings === 3, JSON.stringify(r.json).slice(0, 160));
+  ok('role gets an auto reference code', /^DAC-[A-Z]{1,2}-[0-9A-F]{4}$/.test(newJob?.code || ''), newJob?.code);
+
+  r = await cand('GET', '/api/jobs');
+  ok('candidates see the new role', r.json.jobs.some((j) => j.id === newJob.id));
+
+  // add openings
+  r = await admin('PATCH', `/api/jobs/${newJob.id}`, { openings: 7 });
+  ok('admin adds openings', r.json?.job?.openings === 7, String(r.json?.job?.openings));
+  ok('editing openings leaves the rest alone', r.json?.job?.title === 'Speech Research Assistant' &&
+     r.json?.job?.stipend === '₹12,000 / month', JSON.stringify(r.json?.job).slice(0, 120));
+
+  r = await admin('PATCH', `/api/jobs/${newJob.id}`, { openings: 0 }, { allowFail: true });
+  ok('rejects zero openings', r.status === 400, String(r.status));
+
+  // close to new applicants
+  r = await admin('PATCH', `/api/jobs/${newJob.id}`, { status: 'closed' });
+  ok('admin can close a role', r.json?.job?.status === 'closed');
+  const late = client('late');
+  await late('POST', '/api/auth/register', { fullName: 'Late Arrival', email: `late.${Date.now()}@dgu.ac.in`, password: 'testpass1' });
+  r = await late('POST', '/api/applications', { jobId: newJob.id, headline: 'Too late', coverNote: 'a'.repeat(30) }, { allowFail: true });
+  ok('a closed role refuses new applications', r.status === 409, String(r.status));
+
+  // delete a role nobody applied to
+  r = await admin('DELETE', `/api/jobs/${newJob.id}`);
+  ok('deletes an unused role outright', r.json?.ok === true && r.json?.closed === false, JSON.stringify(r.json));
+  r = await admin('GET', `/api/jobs/${newJob.id}`, null, { allowFail: true });
+  ok('the deleted role is gone', r.status === 404, String(r.status));
+
+  // a role with applications must never take them down with it
+  r = await admin('GET', '/api/jobs?all=1');
+  const used = r.json.jobs.find((j) => j.id === job.id);
+  const before = (await admin('GET', `/api/applications?jobId=${used.id}`)).json.total;
+  r = await admin('DELETE', `/api/jobs/${used.id}`);
+  ok('a role with applications is closed, not deleted', r.json?.closed === true, JSON.stringify(r.json));
+  r = await admin('GET', `/api/jobs/${used.id}`);
+  ok('that role still exists', r.json?.job?.status === 'closed', r.json?.job?.status);
+  const after = (await admin('GET', `/api/applications?jobId=${used.id}`)).json.total;
+  ok('its applications survived', after === before && after > 0, `${before} → ${after}`);
+
+  // permissions
+  r = await cand('POST', '/api/jobs', { title: 'Self-appointed Director' }, { allowFail: true });
+  ok('candidates cannot create roles', r.status === 403, String(r.status));
+  r = await cand('DELETE', `/api/jobs/${used.id}`, null, { allowFail: true });
+  ok('candidates cannot delete roles', r.status === 403, String(r.status));
+}
+
+console.log('\n11. rate limiting');
 {
   const attacker = client('attacker');
   let blockedAt = null;
