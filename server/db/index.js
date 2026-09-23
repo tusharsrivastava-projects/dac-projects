@@ -29,6 +29,7 @@ const MIGRATIONS = [
   ['answers', 'storage', "TEXT NOT NULL DEFAULT 'local'"],
   ['answers', 'drive_file_id', 'TEXT'],
   ['answers', 'drive_link', 'TEXT'],
+  ['jobs', 'archived_at', 'TEXT'],
   ['applications', 'drive_folder_id', 'TEXT'],
   ['applications', 'drive_folder_link', 'TEXT'],
 ];

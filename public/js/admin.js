@@ -752,60 +752,102 @@ function sendOffer(offer, reload) {
 
 /* ── Roles ──────────────────────────────────────────────────────────────── */
 
+let showArchivedRoles = false;
+
 async function viewRoles() {
   renderLoading();
-  const { jobs } = await api.get('/api/jobs?all=1');
+  const { jobs, archivedCount } = await api.get(`/api/jobs?all=1${showArchivedRoles ? '&archived=1' : ''}`);
+
+  const live = jobs.filter((j) => !j.archived);
+  const archived = jobs.filter((j) => j.archived);
+  const openings = live.filter((j) => j.status === 'open').reduce((n, j) => n + j.openings, 0);
 
   setHeader({
     title: 'Roles',
-    sub: `${jobs.filter((j) => j.status === 'open').length} open of ${jobs.length}`,
-    actions: [el('button', { class: 'btn btn-primary', type: 'button', html: `${icon('plus')}New role`, onClick: () => openRoleForm(null) })],
+    sub: live.length
+      ? `${openings} opening${openings === 1 ? '' : 's'} across ${live.filter((j) => j.status === 'open').length} open role${live.filter((j) => j.status === 'open').length === 1 ? '' : 's'}`
+      : 'No roles posted yet',
+    actions: [
+      archivedCount ? el('button', {
+        class: 'btn btn-ghost', type: 'button',
+        text: showArchivedRoles ? 'Hide archived' : `Show archived (${archivedCount})`,
+        onClick: () => { showArchivedRoles = !showArchivedRoles; viewRoles(); },
+      }) : null,
+      el('button', { class: 'btn btn-primary', type: 'button', html: `${icon('plus')}New role`, onClick: () => openRoleForm(null) }),
+    ].filter(Boolean),
   });
 
-  render(el('div', { class: 'card' }, [
-    jobs.length ? el('div', { class: 'table-wrap' }, [
-      el('table', { class: 'data' }, [
-        el('thead', [el('tr', [
-          el('th', { text: 'Role' }), el('th', { text: 'Engagement' }), el('th', { text: 'Status' }),
-          el('th', { text: 'Openings' }), el('th', { text: 'Applications' }), el('th', { text: 'Questions' }), el('th', { text: '' }),
+  const table = (rows, { isArchive = false } = {}) => el('div', { class: 'table-wrap' }, [
+    el('table', { class: 'data' }, [
+      el('thead', [el('tr', [
+        el('th', { text: 'Role' }), el('th', { text: 'Engagement' }), el('th', { text: 'Status' }),
+        el('th', { text: 'Openings' }), el('th', { text: 'Applications' }), el('th', { text: 'Questions' }), el('th', { text: '' }),
+      ])]),
+      el('tbody', rows.map((j) => el('tr', { style: isArchive ? 'opacity:.72' : '' }, [
+        el('td', [
+          el('div', { class: 'strong', text: j.title }),
+          el('div', { class: 'tiny muted mono', text: j.code }),
+        ]),
+        el('td', { class: 'tiny', text: j.employmentType }),
+        el('td', [el('span', {
+          html: pill(isArchive ? 'archived' : j.status,
+            isArchive ? 'muted' : j.status === 'open' ? 'good' : j.status === 'draft' ? 'warn' : 'muted'),
+        })]),
+        el('td', { text: String(j.openings) }),
+        el('td', [j.applicationCount
+          ? el('button', { class: 'linkish', style: 'font-size:14px', type: 'button', text: String(j.applicationCount),
+              onClick: () => go(`/applications?jobId=${j.id}`) })
+          : el('span', { class: 'muted', text: '0' })]),
+        el('td', { class: 'tiny muted', text: String(j.questionCount) }),
+        el('td', [el('div', { class: 'row', style: 'gap:6px;justify-content:flex-end' }, isArchive ? [
+          el('button', {
+            class: 'btn btn-ghost btn-sm', type: 'button', text: 'Restore',
+            onClick: async () => {
+              await api.post(`/api/jobs/${j.id}/restore`);
+              toast(`${j.title} is back on the board, closed to new applications.`, 'good');
+              viewRoles();
+            },
+          }),
+        ] : [
+          el('button', { class: 'btn btn-quiet btn-sm', type: 'button', html: icon('edit'), title: 'Edit', onClick: () => openRoleForm(j) }),
+          el('button', {
+            class: 'btn btn-quiet btn-sm', type: 'button', html: icon('trash'),
+            title: j.applicationCount ? 'Archive' : 'Delete',
+            onClick: async () => {
+              if (!await confirmDialog({
+                title: j.applicationCount ? `Archive "${j.title}"?` : `Delete "${j.title}"?`,
+                message: j.applicationCount
+                  ? `It comes off the roles section and candidates stop seeing it. The ${j.applicationCount} application${j.applicationCount === 1 ? '' : 's'} already in are untouched and stay reviewable, and you can restore the role at any time.`
+                  : 'Nobody has applied, so this role is deleted outright.',
+                confirmLabel: j.applicationCount ? 'Archive role' : 'Delete role', danger: true,
+              })) return;
+              const res = await api.del(`/api/jobs/${j.id}`);
+              toast(res.message || 'Role removed.', 'good');
+              viewRoles();
+            },
+          }),
         ])]),
-        el('tbody', jobs.map((j) => el('tr', [
-          el('td', [
-            el('div', { class: 'strong', text: j.title }),
-            el('div', { class: 'tiny muted mono', text: j.code }),
-          ]),
-          el('td', { class: 'tiny', text: j.employmentType }),
-          el('td', { html: pill(j.status, j.status === 'open' ? 'good' : j.status === 'draft' ? 'warn' : 'muted') }),
-          el('td', { text: String(j.openings) }),
-          el('td', [j.applicationCount
-            ? el('button', { class: 'linkish', style: 'font-size:14px', type: 'button', text: String(j.applicationCount), onClick: () => go(`/applications?jobId=${j.id}`) })
-            : el('span', { class: 'muted', text: '0' })]),
-          el('td', { class: 'tiny muted', text: String(j.questionCount) }),
-          el('td', [el('div', { class: 'row', style: 'gap:6px;justify-content:flex-end' }, [
-            el('button', { class: 'btn btn-quiet btn-sm', type: 'button', html: icon('edit'), title: 'Edit', onClick: () => openRoleForm(j) }),
-            el('button', {
-              class: 'btn btn-quiet btn-sm', type: 'button', html: icon('trash'), title: 'Delete or close',
-              onClick: async () => {
-                if (!await confirmDialog({
-                  title: `Remove "${j.title}"?`,
-                  message: j.applicationCount
-                    ? `${j.applicationCount} application(s) reference this role, so it will be closed rather than deleted — nobody's application is lost.`
-                    : 'Nobody has applied, so this role will be deleted outright.',
-                  confirmLabel: j.applicationCount ? 'Close role' : 'Delete role', danger: true,
-                })) return;
-                const res = await api.del(`/api/jobs/${j.id}`);
-                toast(res.message || 'Role deleted.', 'good');
-                viewRoles();
-              },
-            }),
-          ])]),
-        ]))),
+      ]))),
+    ]),
+  ]);
+
+  render(el('div', { class: 'stack' }, [
+    el('div', { class: 'card' }, [
+      live.length ? table(live) : emptyState({
+        iconName: 'briefcase', title: 'No roles on the board',
+        message: 'Nothing is shown to candidates until you post a role.',
+        action: el('button', { class: 'btn btn-primary', style: 'margin-top:16px', type: 'button',
+          text: 'Post the first role', onClick: () => openRoleForm(null) }),
+      }),
+    ]),
+
+    showArchivedRoles && archived.length ? el('div', { class: 'card' }, [
+      el('div', { class: 'card-head' }, [
+        el('h2', { class: 'grow', text: 'Archived' }),
+        el('span', { class: 'tiny muted', text: 'Off the board and hidden from candidates. Their applications are still reviewable.' }),
       ]),
-    ]) : emptyState({
-      iconName: 'briefcase', title: 'No roles yet',
-      message: 'Create a role and candidates can start applying.',
-      action: el('button', { class: 'btn btn-primary', style: 'margin-top:16px', type: 'button', text: 'Create the first role', onClick: () => openRoleForm(null) }),
-    }),
+      table(archived, { isArchive: true }),
+    ]) : null,
   ]));
 }
 

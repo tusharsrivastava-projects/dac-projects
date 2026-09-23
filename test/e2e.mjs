@@ -227,20 +227,49 @@ console.log('\n10. role management');
 
   // delete a role nobody applied to
   r = await admin('DELETE', `/api/jobs/${newJob.id}`);
-  ok('deletes an unused role outright', r.json?.ok === true && r.json?.closed === false, JSON.stringify(r.json));
+  ok('deletes an unused role outright', r.json?.ok === true && r.json?.archived === false, JSON.stringify(r.json));
   r = await admin('GET', `/api/jobs/${newJob.id}`, null, { allowFail: true });
   ok('the deleted role is gone', r.status === 404, String(r.status));
 
-  // a role with applications must never take them down with it
+  // a role with applications comes off the board without taking them with it
   r = await admin('GET', '/api/jobs?all=1');
   const used = r.json.jobs.find((j) => j.id === job.id);
   const before = (await admin('GET', `/api/applications?jobId=${used.id}`)).json.total;
+
   r = await admin('DELETE', `/api/jobs/${used.id}`);
-  ok('a role with applications is closed, not deleted', r.json?.closed === true, JSON.stringify(r.json));
-  r = await admin('GET', `/api/jobs/${used.id}`);
-  ok('that role still exists', r.json?.job?.status === 'closed', r.json?.job?.status);
+  ok('a role with applications is archived, not deleted', r.json?.archived === true, JSON.stringify(r.json));
+
+  r = await admin('GET', '/api/jobs?all=1');
+  ok('archived roles leave the roles section', !r.json.jobs.some((j) => j.id === used.id));
+  ok('but are counted so they can be found', r.json.archivedCount >= 1, String(r.json.archivedCount));
+
+  r = await admin('GET', '/api/jobs?all=1&archived=1');
+  const back = r.json.jobs.find((j) => j.id === used.id);
+  ok('asking for archived brings it back', Boolean(back) && back.archived === true);
+
+  r = await cand('GET', '/api/jobs');
+  ok('candidates never see an archived role', !r.json.jobs.some((j) => j.id === used.id));
+  r = await cand('GET', `/api/jobs/${used.id}`, null, { allowFail: true });
+  ok('nor reach it directly by id', r.status === 404, String(r.status));
+
   const after = (await admin('GET', `/api/applications?jobId=${used.id}`)).json.total;
   ok('its applications survived', after === before && after > 0, `${before} → ${after}`);
+  r = await admin('GET', `/api/applications/${appId}`);
+  ok('and stay fully reviewable', r.status === 200 && r.json.answers.length > 0);
+
+  r = await admin('POST', `/api/jobs/${used.id}/restore`);
+  ok('restoring puts it back, closed', r.json?.job?.archived === false && r.json?.job?.status === 'closed',
+     JSON.stringify(r.json?.job).slice(0, 120));
+  r = await admin('GET', '/api/jobs?all=1');
+  ok('and it is on the board again', r.json.jobs.some((j) => j.id === used.id));
+  r = await admin('POST', `/api/jobs/${used.id}/restore`, {}, { allowFail: true });
+  ok('restoring a live role is refused', r.status === 409, String(r.status));
+
+  // editing an archived role is a clear signal it is wanted back
+  await admin('DELETE', `/api/jobs/${used.id}`);
+  await admin('PATCH', `/api/jobs/${used.id}`, { openings: 5 });
+  r = await admin('GET', '/api/jobs?all=1');
+  ok('saving an archived role un-archives it', r.json.jobs.some((j) => j.id === used.id && j.openings === 5));
 
   // permissions
   r = await cand('POST', '/api/jobs', { title: 'Self-appointed Director' }, { allowFail: true });

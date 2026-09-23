@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS jobs (
   description     TEXT,
   openings        INTEGER NOT NULL DEFAULT 1,
   status          TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('draft', 'open', 'closed')),
+  archived_at     TEXT,
   created_by      INTEGER REFERENCES users (id),
   created_at      TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at      TEXT NOT NULL DEFAULT (datetime('now'))

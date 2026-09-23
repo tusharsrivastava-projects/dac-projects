@@ -1,6 +1,6 @@
 import express from 'express';
 import { db, logActivity } from '../db/index.js';
-import { notFound, wrap } from '../lib/http.js';
+import { conflict, notFound, wrap } from '../lib/http.js';
 import { jobCode } from '../lib/ids.js';
 import * as v from '../lib/validate.js';
 import { requireAdmin } from '../middleware/session.js';
@@ -19,6 +19,8 @@ const shape = (j) => ({
   description: j.description,
   openings: j.openings,
   status: j.status,
+  archived: Boolean(j.archived_at),
+  archivedAt: j.archived_at ?? null,
   createdAt: j.created_at,
   applicationCount: j.application_count ?? undefined,
   questionCount: j.question_count ?? undefined,
@@ -29,7 +31,11 @@ const shape = (j) => ({
 
 /** Open roles, with the caller's own application attached when signed in. */
 jobsRouter.get('/', wrap((req, res) => {
-  const all = req.user?.role === 'admin' && req.query.all === '1';
+  const isAdmin = req.user?.role === 'admin';
+  const all = isAdmin && req.query.all === '1';
+  // Archived roles stay out of the roles section. An admin can ask for them
+  // back with ?archived=1; a candidate never sees them at all.
+  const withArchived = isAdmin && req.query.archived === '1';
   const rows = db.prepare(`
     SELECT j.*,
            (SELECT COUNT(*) FROM applications a WHERE a.job_id = j.id) AS application_count,
@@ -38,10 +44,17 @@ jobsRouter.get('/', wrap((req, res) => {
            ma.stage AS my_stage
       FROM jobs j
       LEFT JOIN applications ma ON ma.job_id = j.id AND ma.candidate_id = ?
-     ${all ? '' : "WHERE j.status = 'open'"}
-     ORDER BY j.status = 'open' DESC, j.created_at DESC
+     ${all
+       ? (withArchived ? '' : 'WHERE j.archived_at IS NULL')
+       : "WHERE j.status = 'open' AND j.archived_at IS NULL"}
+     ORDER BY j.archived_at IS NOT NULL, j.status = 'open' DESC, j.created_at DESC
   `).all(req.user?.id ?? -1);
-  res.json({ jobs: rows.map(shape) });
+
+  const archivedCount = isAdmin
+    ? db.prepare('SELECT COUNT(*) AS n FROM jobs WHERE archived_at IS NOT NULL').get().n
+    : undefined;
+
+  res.json({ jobs: rows.map(shape), archivedCount });
 }));
 
 jobsRouter.get('/:id', wrap((req, res) => {
@@ -55,7 +68,9 @@ jobsRouter.get('/:id', wrap((req, res) => {
      WHERE j.id = ?
   `).get(req.user?.id ?? -1, id);
   if (!job) throw notFound('That role does not exist.');
-  if (job.status !== 'open' && req.user?.role !== 'admin') throw notFound('That role is no longer open.');
+  if (req.user?.role !== 'admin' && (job.status !== 'open' || job.archived_at)) {
+    throw notFound('That role is no longer open.');
+  }
   res.json({ job: shape(job) });
 }));
 
@@ -89,6 +104,9 @@ jobsRouter.patch('/:id', requireAdmin, wrap((req, res) => {
   if (!existing) throw notFound('That role does not exist.');
 
   const j = readJobBody({ ...shape(existing), ...req.body });
+  // Saving an archived role is a clear signal it is wanted again.
+  if (existing.archived_at) db.prepare('UPDATE jobs SET archived_at = NULL WHERE id = ?').run(id);
+
   db.prepare(`
     UPDATE jobs SET title = @title, department = @department, location = @location,
            employment_type = @employment_type, stipend = @stipend, summary = @summary,
@@ -108,13 +126,33 @@ jobsRouter.delete('/:id', requireAdmin, wrap((req, res) => {
 
   const count = db.prepare('SELECT COUNT(*) AS n FROM applications WHERE job_id = ?').get(id).n;
   if (count > 0) {
-    // Never destroy applications as a side effect of tidying up the board.
-    db.prepare("UPDATE jobs SET status = 'closed', updated_at = datetime('now') WHERE id = ?").run(id);
-    logActivity({ actorId: req.user.id, actorName: req.user.fullName, action: 'job.closed', entity: 'job', entityId: id, detail: job.title });
-    return res.json({ ok: true, closed: true, message: `${count} application(s) reference this role, so it was closed instead of deleted.` });
+    // Deleting would take every application and recording with it. Archive
+    // instead: off the roles section, out of sight for candidates, and the
+    // applications stay reviewable.
+    db.prepare(`
+      UPDATE jobs SET status = 'closed', archived_at = datetime('now'), updated_at = datetime('now')
+       WHERE id = ?
+    `).run(id);
+    logActivity({ actorId: req.user.id, actorName: req.user.fullName, action: 'job.archived', entity: 'job', entityId: id, detail: job.title });
+    return res.json({
+      ok: true, archived: true, applications: count,
+      message: `Archived. ${count} application${count === 1 ? '' : 's'} still reference this role, so it was taken off the board rather than deleted — you can still review them, and restore the role at any time.`,
+    });
   }
 
   db.prepare('DELETE FROM jobs WHERE id = ?').run(id);
   logActivity({ actorId: req.user.id, actorName: req.user.fullName, action: 'job.deleted', entity: 'job', entityId: id, detail: job.title });
-  res.json({ ok: true, closed: false });
+  res.json({ ok: true, archived: false, message: `${job.title} deleted.` });
+}));
+
+/** Puts an archived role back on the board, closed rather than open. */
+jobsRouter.post('/:id/restore', requireAdmin, wrap((req, res) => {
+  const id = v.int(req.params.id, 'Job id', { min: 1 });
+  const job = db.prepare('SELECT * FROM jobs WHERE id = ?').get(id);
+  if (!job) throw notFound('That role does not exist.');
+  if (!job.archived_at) throw conflict('That role is not archived.');
+
+  db.prepare("UPDATE jobs SET archived_at = NULL, updated_at = datetime('now') WHERE id = ?").run(id);
+  logActivity({ actorId: req.user.id, actorName: req.user.fullName, action: 'job.restored', entity: 'job', entityId: id, detail: job.title });
+  res.json({ job: shape(db.prepare('SELECT * FROM jobs WHERE id = ?').get(id)) });
 }));

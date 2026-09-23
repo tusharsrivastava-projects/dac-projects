@@ -142,28 +142,61 @@ ok('openings updated to 7',
 await snap(admin, 'admin-roles');
 
 await admin.locator('table.data tbody tr', { hasText: 'Speech Research Assistant' }).first()
-  .locator('button[title="Delete or close"]').click();
+  .locator('button[title="Delete"]').click();
 await admin.waitForSelector('.modal');
 await admin.locator('.modal-foot button', { hasText: /Delete role/ }).click();
-await admin.waitForTimeout(1300);
-ok('unused role is deleted', await admin.getByText('Speech Research Assistant').count() === 0);
+await admin.waitForTimeout(1400);
+// the toast repeats the role name, so look in the table rather than the page
+ok('unused role is deleted',
+   await admin.locator('table.data tbody tr', { hasText: 'Speech Research Assistant' }).count() === 0);
 
-// a role candidates have applied to must be closed instead, never deleted
+// a role candidates have applied to comes off the board, never deleted
 const usedRow = admin.locator('table.data tbody tr', { hasText: 'Machine Learning Intern' }).first();
-await usedRow.locator('button[title="Delete or close"]').click();
+await usedRow.locator('button[title="Archive"]').click();
 await admin.waitForSelector('.modal');
 const warning = await admin.locator('.modal-body').innerText();
-ok('warns that applications reference it', /closed rather than deleted/i.test(warning), warning.slice(0, 90));
-await admin.locator('.modal-foot button', { hasText: /Close role/ }).click();
-await admin.waitForTimeout(1300);
-ok('role survives as closed', await admin.getByText('Machine Learning Intern').count() > 0);
-// put it back so the rest of the walk-through still has an open role
+ok('explains applications are kept', /stay reviewable/i.test(warning), warning.slice(0, 100));
+await admin.locator('.modal-foot button', { hasText: /Archive role/ }).click();
+await admin.waitForTimeout(1400);
+ok('archived role leaves the roles section',
+   await admin.locator('table.data tbody tr', { hasText: 'Machine Learning Intern' }).count() === 0);
+ok('a way back is offered', await admin.getByRole('button', { name: /Show archived/ }).count() === 1);
+
+await admin.getByRole('button', { name: /Show archived/ }).click();
+await admin.waitForTimeout(1200);
+ok('archived section lists it',
+   await admin.locator('table.data tbody tr', { hasText: 'Machine Learning Intern' }).count() === 1);
+await snap(admin, 'admin-roles-archived');
+
+// its applications are untouched
+await admin.click('a[data-path="/applications"]');
+// the roles page has a table.data too, so wait for the view to actually swap
+await admin.waitForFunction(() => document.querySelector('#page-title')?.textContent === 'Applications', null, { timeout: 8000 });
+await admin.waitForSelector('table.data tbody tr');
+await admin.waitForTimeout(400);
+ok('applications for an archived role are still listed',
+   await admin.locator('table.data tbody tr', { hasText: 'Ishita Rao' }).count() > 0);
+
+// restore, and reopen so the rest of the walk-through has somewhere to apply
+await admin.click('a[data-path="/roles"]');
+await admin.waitForFunction(() => document.querySelector('#page-title')?.textContent === 'Roles', null, { timeout: 8000 });
+await admin.waitForTimeout(700);
+// the toggle is sticky, so only click it when the archived section is hidden
+if (await admin.getByRole('button', { name: /Show archived/ }).count()) {
+  await admin.getByRole('button', { name: /Show archived/ }).click();
+  await admin.waitForTimeout(1100);
+}
+await admin.locator('table.data tbody tr', { hasText: 'Machine Learning Intern' }).first()
+  .locator('button', { hasText: 'Restore' }).click();
+await admin.waitForTimeout(1400);
+ok('restore puts it back on the board',
+   await admin.locator('table.data tbody tr', { hasText: 'Machine Learning Intern' }).count() >= 1);
 await admin.locator('table.data tbody tr', { hasText: 'Machine Learning Intern' }).first()
   .locator('button[title="Edit"]').click();
 await admin.waitForSelector('#role-form');
 await admin.selectOption('#rl-status', 'open');
 await admin.click('button[form=role-form]');
-await admin.waitForTimeout(1200);
+await admin.waitForTimeout(1300);
 
 console.log('\n5. candidate records the interview');
 await cand.goto(`${BASE}/app#/interview`, { waitUntil: 'networkidle' });
