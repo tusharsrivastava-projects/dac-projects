@@ -610,6 +610,17 @@ async function viewInterview({ id }) {
     return;
   }
 
+  if (!questions.length) {
+    render(el('div', { class: 'card' }, [emptyState({
+      iconName: 'help',
+      title: 'No questions on this role yet',
+      message: 'The panel has not written the interview questions for this role. There is nothing to record until they do — we will email you the moment it is ready.',
+      action: el('button', { class: 'btn btn-ghost', style: 'margin-top:16px', type: 'button',
+        text: 'Back to my application', onClick: () => go(`/applications/${a.id}`) }),
+    })]));
+    return;
+  }
+
   if (!recordingSupported()) {
     render(el('div', { class: 'card card-pad' }, [
       el('div', { class: 'alert alert-error' }, [

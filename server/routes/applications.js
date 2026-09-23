@@ -98,7 +98,15 @@ applicationsRouter.post('/', requireAuth, wrap(async (req, res) => {
   // When the role records at application time, the interview opens right away
   // rather than waiting on an admin — the candidate goes straight from the form
   // to the questions and finishes in one sitting.
-  const recordsNow = (job.interview_mode || 'at_application') === 'at_application';
+  //
+  // Unless there is nothing to ask. A role whose question bank is still empty
+  // would otherwise hand the candidate an interview with no questions in it,
+  // so that one waits until somebody has written them.
+  const questionCount = db.prepare(`
+    SELECT COUNT(*) AS n FROM questions
+     WHERE active = 1 AND (job_id IS NULL OR job_id = ?)
+  `).get(jobId).n;
+  const recordsNow = (job.interview_mode || 'at_application') === 'at_application' && questionCount > 0;
 
   const id = db.prepare(`
     INSERT INTO applications (candidate_id, job_id, headline, experience, skills, portfolio_url, resume_url,

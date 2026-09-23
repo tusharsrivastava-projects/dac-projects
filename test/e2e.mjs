@@ -239,6 +239,42 @@ ok('candidate cannot list all applications', r.status === 403);
 r = await other('POST', '/api/questions', { prompt: 'x'.repeat(20) }, { allowFail: true });
 ok('candidate cannot add questions', r.status === 403);
 
+console.log('\n9a. a role with no questions yet');
+{
+  r = await admin('POST', '/api/jobs', {
+    title: 'Not Written Yet', employmentType: 'Internship', openings: 1,
+    summary: 'Posted before the panel wrote any interview questions.',
+    description: 'A role that exists before anybody has written its questions.',
+  });
+  const bare = r.json.job;
+
+  // retire every question so this role genuinely has none
+  const { questions: bank } = (await admin('GET', '/api/questions')).json;
+  const parked = [];
+  for (const q of bank.filter((x) => x.active)) {
+    await admin('PATCH', `/api/questions/${q.id}`, { active: false });
+    parked.push(q.id);
+  }
+
+  r = await cand('GET', `/api/jobs/${bare.id}/questions`);
+  ok('the role reports an empty bank', r.json.questions.length === 0, String(r.json.questions.length));
+
+  const eager = client('eager');
+  await eager('POST', '/api/auth/register', { fullName: 'Eager Applicant', email: `eager.${Date.now()}@dgu.ac.in`, password: 'testpass1' });
+  r = await eager('POST', '/api/applications', {
+    jobId: bare.id, headline: 'Applying before the questions exist',
+    coverNote: 'There is nothing to record yet, so this should simply wait rather than opening an empty interview.',
+  });
+  ok('applying does not open an empty interview', r.json.application.stage === 'applied', r.json.application.stage);
+  ok('and says so', r.json.interviewOpen === false);
+
+  r = await eager('GET', `/api/interview/${r.json.application.id}`);
+  ok('the interview screen has nothing to show', r.json.open === false && r.json.questions.length === 0);
+
+  for (const id of parked) await admin('PATCH', `/api/questions/${id}`, { active: true });
+  await admin('DELETE', `/api/jobs/${bare.id}`);
+}
+
 console.log('\n9b. google sign-in routes');
 {
   r = await guest('GET', '/api/auth/google/available');
