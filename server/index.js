@@ -71,14 +71,26 @@ if (isEmpty() && process.env.AUTO_BOOTSTRAP !== 'false') {
   console.log(`Bootstrapped an empty database: admin ${config.seedAdmin.email}, ${seeded.jobs} role(s), ${seeded.questions} question(s).`);
 }
 
-// Shipping a repo means shipping its default password. Say so, loudly.
-if (KNOWN_DEFAULT_PASSWORDS.has(config.seedAdmin.password)) {
+// The admin account guards every application and recording, so say something
+// when its password would not survive a guess. Never print the password.
+{
+  const pw = config.seedAdmin.password;
   const publicFacing = Boolean(config.baseUrl) || process.env.NODE_ENV === 'production';
-  console.warn(
-    `\n  ${publicFacing ? '!!! ' : ''}The admin account still uses the default password from the repo.` +
-    `\n  ${publicFacing ? '!!! ' : ''}Anyone who has read the source can sign in as an administrator.` +
-    `\n  ${publicFacing ? '!!! ' : ''}Set ADMIN_PASSWORD, or change it under Profile once you are in.\n`,
-  );
+  const flag = publicFacing ? '!!! ' : '';
+  let problem = null;
+
+  if (KNOWN_DEFAULT_PASSWORDS.has(pw)) {
+    problem = 'still uses the default password from the repo, which anyone who has read the source knows';
+  } else if (pw.length < 10) {
+    problem = `has a ${pw.length}-character password, which is short enough to guess`;
+  }
+
+  if (problem) {
+    console.warn(
+      `\n  ${flag}The admin account ${problem}.` +
+      `\n  ${flag}Set ADMIN_PASSWORD to something long, or change it under Profile once you are in.\n`,
+    );
+  }
 }
 
 const purged = purgeExpiredSessions();

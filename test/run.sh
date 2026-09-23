@@ -28,3 +28,7 @@ BASE="http://localhost:$PORT" node test/e2e.mjs
 echo
 echo "── Google Drive storage ──────────────────────────────────────────────"
 node test/drive.mjs
+
+echo
+echo "── Secret handling ───────────────────────────────────────────────────"
+node test/secrets.mjs

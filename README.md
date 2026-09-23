@@ -61,8 +61,17 @@ Seeded logins:
 | Candidate | `aarav.demo@dgu.ac.in` | `candidate123`   |
 
 Change the admin password before this goes anywhere real — `ADMIN_EMAIL` and
-`ADMIN_PASSWORD` in `.env` control what `npm run seed` creates, and the server
-warns on every boot while the repo default is still in place.
+`ADMIN_PASSWORD` control what `npm run seed` creates, and the server warns on
+every boot while the repo default is in place or the password is under ten
+characters. It never prints the password itself.
+
+**Keep it out of the repository.** Set it as an environment variable — in a
+local `.env` (gitignored) or, on Render, under Environment with the value
+marked secret. A password committed to git stays in the history after you
+delete it, and everyone with repository access can read it. `npm test`
+includes a suite that fails if the production password ever appears in a
+tracked file, in a log line, or in the database as anything but a bcrypt
+hash.
 
 `npm run reset` wipes the database and uploads and reseeds from scratch.
 
@@ -246,6 +255,9 @@ disappears because someone tidied up the board.
   outgrow it.
 - Recordings sit on local disk unless `STORAGE_DRIVER=drive` is set. On a host
   without a persistent volume, set it.
+- The admin password is never logged, never returned by the API and stored
+  only as a bcrypt hash. Rotate it by changing `ADMIN_PASSWORD` and using
+  Profile → Password, or by deleting the admin row and reseeding.
 - Sign-in, registration and password changes are rate limited in memory. That
   is per-process, so a multi-instance deploy gets one bucket per instance —
   fine for one box, worth moving to a shared store if you scale out.
