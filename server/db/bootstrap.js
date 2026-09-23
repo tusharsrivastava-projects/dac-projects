@@ -160,11 +160,15 @@ export function ensureDemoData(adminId, { withCandidate = true } = {}) {
 }
 
 /**
- * Brings an empty database up to a usable state. Safe to call on every boot —
- * it only touches rows that are not already there.
+ * Brings an empty database up to a usable state: an admin account, and
+ * nothing else.
+ *
+ * Sample roles and questions are deliberately opt-in. A fresh install is a
+ * real hiring board, and candidates should never be shown invented openings
+ * they could apply to — the admin posts the real ones.
  */
-export function bootstrap({ demo = true } = {}) {
+export function bootstrap({ demo = false } = {}) {
   const { adminId, created } = ensureAdmin();
-  const data = demo ? ensureDemoData(adminId, { withCandidate: demo === 'full' }) : { jobs: 0, questions: 0 };
+  const data = demo ? ensureDemoData(adminId, { withCandidate: demo === 'full' }) : { jobs: 0, questions: 0, candidate: false };
   return { adminId, adminCreated: created, ...data };
 }

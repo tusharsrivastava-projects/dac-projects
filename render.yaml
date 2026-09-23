@@ -70,9 +70,11 @@ services:
       - key: ADMIN_NAME
         value: DAC Administrator
 
-      # Set to 'false' if you want an empty board with no sample roles.
+      # A fresh deploy starts with an admin account and an empty board, so
+      # candidates are never shown openings nobody posted. Set this to 'true'
+      # only if you want the three sample roles to click around.
       - key: SEED_DEMO_DATA
-        value: 'true'
+        value: 'false'
 
       # ── Where recordings are stored ────────────────────────────────────────
       # 'drive' is what makes the free plan workable: recordings go to your

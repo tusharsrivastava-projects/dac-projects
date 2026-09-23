@@ -111,6 +111,13 @@ async function viewOverview() {
           onClick: () => go(`/interview/${a.id}`) }),
       ]),
     ]);
+  } else if (!apps.length && !open.length) {
+    // Nothing posted yet. Saying "0 open roles" would read like a fault.
+    hero = el('div', { class: 'hero' }, [
+      el('div', { class: 'eyebrow', style: 'color:#c5a6f0', text: 'Nothing open yet' }),
+      el('h2', { text: 'No roles are accepting applications' }),
+      el('p', 'The AI Cell is not hiring at the moment. New roles open every term — this page updates the moment one is posted, so check back.'),
+    ]);
   } else if (!apps.length) {
     hero = el('div', { class: 'hero' }, [
       el('div', { class: 'eyebrow', style: 'color:#c5a6f0', text: 'Getting started' }),

@@ -52,7 +52,9 @@ async function viewOverview() {
 
   setHeader({
     title: 'Hiring overview',
-    sub: `${totals.applications} application${totals.applications === 1 ? '' : 's'} across ${totals.openRoles} open role${totals.openRoles === 1 ? '' : 's'}`,
+    sub: totals.openRoles === 0
+      ? 'No roles posted yet'
+      : `${totals.applications} application${totals.applications === 1 ? '' : 's'} across ${totals.openRoles} open role${totals.openRoles === 1 ? '' : 's'}`,
     actions: [
       data.storage?.folderLink
         ? el('a', {
@@ -77,7 +79,22 @@ async function viewOverview() {
 
   const maxStage = Math.max(1, ...pipeline.map((p) => p.count));
 
+  const firstRun = totals.openRoles === 0 && totals.applications === 0;
+
   render(el('div', { class: 'stack', style: 'gap:18px' }, [
+    firstRun ? el('div', { class: 'card card-pad', style: 'border-color:var(--violet-200)' }, [
+      el('div', { class: 'eyebrow', style: 'color:var(--violet-500)', text: 'First run' }),
+      el('h2', { style: 'margin-top:6px', text: 'Your hiring board is empty' }),
+      el('p', { class: 'muted', style: 'margin:8px 0 0;max-width:62ch' },
+        'Nothing is shown to candidates until you post a role, so the board starts blank on purpose. Post one, then add the questions you want every applicant to answer on camera-free audio.'),
+      el('div', { class: 'row-wrap', style: 'margin-top:16px' }, [
+        el('button', { class: 'btn btn-primary', type: 'button', html: `${icon('plus')}Post your first role`,
+          onClick: () => go('/roles') }),
+        el('button', { class: 'btn btn-ghost', type: 'button', html: `${icon('help')}Set up the question bank`,
+          onClick: () => go('/questions') }),
+      ]),
+    ]) : null,
+
     storageBanner(data.storage),
 
     !data.smtpConfigured ? el('div', { class: 'alert alert-violet' }, [

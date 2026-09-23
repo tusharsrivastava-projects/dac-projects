@@ -96,6 +96,36 @@ ok('.env is not tracked', () => assert.ok(!tracked.includes('.env')));
 ok('.gitignore covers .env', () =>
   assert.match(fs.readFileSync(path.join(ROOT, '.gitignore'), 'utf8'), /^\.env$/m));
 
+console.log('\n6. a fresh install has an empty board');
+{
+  // Seeded above with the defaults, so this is what a real deploy looks like.
+  const fresh = new Database(path.join(tmp, 'dac-hrm.sqlite'), { readonly: true });
+  const n = (t) => fresh.prepare(`SELECT COUNT(*) AS n FROM ${t}`).get().n;
+
+  ok('no roles are invented', () => assert.equal(n('jobs'), 0));
+  ok('no questions are invented', () => assert.equal(n('questions'), 0));
+  ok('no applications exist', () => assert.equal(n('applications'), 0));
+  ok('exactly one account, and it is the admin', () => {
+    assert.equal(n('users'), 1);
+    assert.equal(fresh.prepare('SELECT role FROM users').get().role, 'admin');
+  });
+  ok('no demo candidate is created', () =>
+    assert.equal(fresh.prepare("SELECT COUNT(*) AS n FROM users WHERE role = 'candidate'").get().n, 0));
+  fresh.close();
+}
+
+console.log('\n7. samples only when asked for');
+{
+  const optIn = fs.mkdtempSync(path.join(os.tmpdir(), 'dac-demo-'));
+  run(['server/db/seed.js', '--demo'], { env: { ...env, DATA_DIR: optIn } });
+  const seeded = new Database(path.join(optIn, 'dac-hrm.sqlite'), { readonly: true });
+  const n = (t) => seeded.prepare(`SELECT COUNT(*) AS n FROM ${t}`).get().n;
+  ok('--demo brings the sample roles back', () => assert.ok(n('jobs') > 0, `${n('jobs')} roles`));
+  ok('--demo brings the question bank back', () => assert.ok(n('questions') > 0));
+  seeded.close();
+  fs.rmSync(optIn, { recursive: true, force: true });
+}
+
 fs.rmSync(tmp, { recursive: true, force: true });
-console.log(`\n${fails === 0 ? '✅ no secrets leaked' : `❌ ${fails} leak(s)`}\n`);
+console.log(`\n${fails === 0 ? '✅ no secrets leaked, empty board on a fresh install' : `❌ ${fails} problem(s)`}\n`);
 process.exit(fails ? 1 : 0);

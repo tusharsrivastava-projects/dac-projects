@@ -10,7 +10,7 @@ trap 'kill "${SERVER_PID:-0}" 2>/dev/null || true; rm -rf "$TMP"' EXIT
 
 export DATA_DIR="$TMP"
 export PORT
-node server/db/seed.js > /dev/null
+node server/db/seed.js -- --demo > /dev/null   # the suites need the sample roles as fixtures
 node server/index.js > "$TMP/server.log" 2>&1 &
 SERVER_PID=$!
 

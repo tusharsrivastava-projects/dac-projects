@@ -67,8 +67,10 @@ app.use(errorHandler);
 // A fresh deploy would otherwise have no way in. Only fires on an empty
 // database, so it never disturbs a running installation.
 if (isEmpty() && process.env.AUTO_BOOTSTRAP !== 'false') {
-  const seeded = bootstrap({ demo: process.env.SEED_DEMO_DATA !== 'false' });
-  console.log(`Bootstrapped an empty database: admin ${config.seedAdmin.email}, ${seeded.jobs} role(s), ${seeded.questions} question(s).`);
+  const seeded = bootstrap({ demo: process.env.SEED_DEMO_DATA === 'true' });
+  console.log(seeded.jobs
+    ? `Bootstrapped an empty database: admin ${config.seedAdmin.email}, ${seeded.jobs} sample role(s), ${seeded.questions} sample question(s).`
+    : `Bootstrapped an empty database: admin ${config.seedAdmin.email}. No roles yet — post the first one from the admin console.`);
 }
 
 // The admin account guards every application and recording, so say something
