@@ -96,6 +96,14 @@ services:
       - key: GOOGLE_DRIVE_SCOPE
         value: https://www.googleapis.com/auth/drive.file
 
+      # Sign in with Google for candidates. Uses the same OAuth client as
+      # Drive above — just add https://<your-host>/api/auth/google/callback to
+      # its authorised redirect URIs. The button hides itself when unset.
+      - key: GOOGLE_REDIRECT_URI
+        sync: false
+      - key: GOOGLE_STATE_SECRET
+        generateValue: true
+
       - key: MAX_AUDIO_MB
         value: '25'
       - key: SESSION_DAYS

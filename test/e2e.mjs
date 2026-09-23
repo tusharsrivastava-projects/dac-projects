@@ -52,27 +52,73 @@ r = await cand('POST', '/api/applications', {
   portfolioUrl: 'https://github.com/example',
 });
 const appId = r.json?.application?.id;
-ok('application created', r.status === 201 && r.json.application.stage === 'applied', JSON.stringify(r.json).slice(0,200));
+ok('application created', r.status === 201, JSON.stringify(r.json).slice(0, 160));
+ok('and its interview is open straight away',
+   r.json.application.stage === 'interview' && r.json.interviewOpen === true, r.json.application.stage);
 
 r = await cand('POST', '/api/applications', { jobId: job.id, headline: 'again', coverNote: 'a'.repeat(30) }, { allowFail: true });
 ok('double apply blocked', r.status === 409);
 
-console.log('\n3. interview locked until admin opens it');
+console.log('\n2b. what a candidate can see before applying');
+r = await cand('GET', `/api/jobs/${job.id}`);
+ok('job description is visible', (r.json?.job?.description || '').length > 50,
+   `${(r.json?.job?.description || '').length} chars`);
+ok('so is the summary and pay', Boolean(r.json.job.summary && r.json.job.stipend));
+
+r = await cand('GET', `/api/jobs/${job.id}/questions`);
+ok('candidate can read the question bank up front', r.json?.questions?.length >= 3,
+   `${r.json?.questions?.length} questions`);
+ok('each question carries its timings', r.json.questions.every((q) => q.thinkSeconds >= 0 && q.answerSeconds > 0));
+ok('and how long the whole thing takes', r.json.totalSeconds > 0, String(r.json.totalSeconds));
+ok('but no answers leak through it', !JSON.stringify(r.json).includes('audioUrl'));
+
+const guestPeek = client('guest-peek');
+r = await guestPeek('GET', `/api/jobs/${job.id}/questions`);
+ok('questions are readable without signing in', r.status === 200);
+
+console.log('\n3. interview opens right away on an at-application role');
 r = await cand('GET', `/api/interview/${appId}`);
-ok('interview not open yet', r.json.open === false);
+ok('interview is open without waiting for an admin', r.json.open === true,
+   `open=${r.json.open} stage=${r.json.application?.stage}`);
+ok('application sits at Interview open', r.json.application?.stage === 'interview');
 ok('questions visible', r.json.questions.length >= 3, `got ${r.json?.questions?.length}`);
+
+
+// a role set to gate the interview still waits for an admin
+r = await admin('POST', '/api/jobs', {
+  title: 'Gated Reviewer', employmentType: 'Part-time', openings: 1,
+  interviewMode: 'after_screening', summary: 'Screened before the interview opens.',
+  description: 'A role where the panel reads the written application first.',
+});
+const gatedJob = r.json.job;
+ok('a role can be set to screen first', gatedJob.interviewMode === 'after_screening', gatedJob.interviewMode);
+
+const gatedCand = client('gated');
+await gatedCand('POST', '/api/auth/register', { fullName: 'Gated Person', email: `gated.${Date.now()}@dgu.ac.in`, password: 'testpass1' });
+r = await gatedCand('POST', '/api/applications', {
+  jobId: gatedJob.id, headline: 'Applying to the gated role',
+  coverNote: 'This application should wait for a human to read it before any recording happens.',
+});
+const gatedApp = r.json.application.id;
+ok('that application waits at Applied', r.json.application.stage === 'applied', r.json.application.stage);
+r = await gatedCand('GET', `/api/interview/${gatedApp}`);
+ok('its interview stays locked', r.json.open === false);
 
 const fakeAudio = new Blob([Buffer.alloc(2048, 7)], { type: 'audio/webm' });
 let fd = new FormData(); fd.append('audio', fakeAudio, 'a.webm'); fd.append('durationSeconds', '12');
-r = await cand('POST', `/api/interview/${appId}/answers/${r.json.questions[0].id}`, fd, { allowFail: true });
+r = await gatedCand('POST', `/api/interview/${gatedApp}/answers/${r.json.questions[0].id}`, fd, { allowFail: true });
 ok('upload blocked while locked', r.status === 409, `${r.status} ${r.text.slice(0,120)}`);
 
 console.log('\n4. admin review + unlock');
+r = await admin('GET', '/api/applications');
+ok('admin sees every application', r.json.applications.some((a) => a.id === appId));
 r = await admin('GET', '/api/applications?stage=applied');
-ok('admin sees applications', r.json.applications.some(a => a.id === appId));
-r = await admin('PATCH', `/api/applications/${appId}/stage`, { stage: 'screening' });
-r = await admin('PATCH', `/api/applications/${appId}/stage`, { stage: 'interview' });
-ok('interview unlocked', r.json?.application?.stage === 'interview');
+ok('the gated one is filed under Applied', r.json.applications.some((a) => a.id === gatedApp));
+r = await admin('GET', '/api/applications?stage=interview');
+ok('the at-application one is already at Interview', r.json.applications.some((a) => a.id === appId));
+r = await admin('PATCH', `/api/applications/${gatedApp}/stage`, { stage: 'screening' });
+r = await admin('PATCH', `/api/applications/${gatedApp}/stage`, { stage: 'interview' });
+ok('admin can still unlock a gated interview', r.json?.application?.stage === 'interview');
 r = await admin('PATCH', `/api/applications/${appId}/stage`, { stage: 'offer_sent' }, { allowFail: true });
 ok('illegal stage jump blocked', r.status === 409);
 

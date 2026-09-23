@@ -32,6 +32,21 @@ function showTab(name) {
 $$('.auth-tab').forEach((t) => t.addEventListener('click', () => showTab(t.dataset.tab)));
 $$('[data-goto]').forEach((b) => b.addEventListener('click', () => showTab(b.dataset.goto)));
 
+/* ── Google sign-in, when the deployment has it configured ──────────────── */
+(async () => {
+  // Carried back from /api/auth/google/callback when something went wrong.
+  const failure = new URLSearchParams(window.location.search).get('google_error');
+  if (failure) {
+    showAlert(failure);
+    window.history.replaceState({}, '', window.location.pathname);
+  }
+
+  try {
+    const { available } = await api.get('/api/auth/google/available');
+    if (available) $('#google-block').classList.remove('hidden');
+  } catch { /* leave it hidden; email sign-in still works */ }
+})();
+
 /* ── Already signed in? Go straight through ─────────────────────────────── */
 (async () => {
   try {

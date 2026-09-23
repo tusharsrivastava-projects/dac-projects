@@ -6,6 +6,11 @@ CREATE TABLE IF NOT EXISTS users (
   email         TEXT NOT NULL UNIQUE,
   phone         TEXT,
   password_hash TEXT NOT NULL,
+  -- 'password' or 'google'. A Google account still gets a password_hash, but
+  -- it is random bytes nobody holds, so password sign-in simply never matches.
+  auth_provider TEXT NOT NULL DEFAULT 'password',
+  google_id     TEXT UNIQUE,
+  avatar_url    TEXT,
   role          TEXT NOT NULL DEFAULT 'candidate' CHECK (role IN ('admin', 'candidate')),
   status        TEXT NOT NULL DEFAULT 'active'    CHECK (status IN ('active', 'disabled')),
   created_at    TEXT NOT NULL DEFAULT (datetime('now'))
@@ -33,6 +38,9 @@ CREATE TABLE IF NOT EXISTS jobs (
   openings        INTEGER NOT NULL DEFAULT 1,
   status          TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('draft', 'open', 'closed')),
   archived_at     TEXT,
+  -- 'at_application': the candidate records their answers as part of applying.
+  -- 'after_screening': an admin opens the interview once they have read it.
+  interview_mode  TEXT NOT NULL DEFAULT 'at_application',
   created_by      INTEGER REFERENCES users (id),
   created_at      TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at      TEXT NOT NULL DEFAULT (datetime('now'))

@@ -32,3 +32,7 @@ node test/drive.mjs
 echo
 echo "── Secret handling ───────────────────────────────────────────────────"
 node test/secrets.mjs
+
+echo
+echo "── Google sign-in ────────────────────────────────────────────────────"
+node test/google-signin.mjs

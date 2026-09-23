@@ -24,8 +24,12 @@ a private link and accepts or declines from there.
 ## What's in it
 
 **For candidates**
-- Sign in / sign out, sidebar dashboard, live stage tracking on every application
-- Browse open roles and apply with a short structured form
+- Sign in with Google, or with an email and password — sidebar dashboard and
+  live stage tracking either way
+- Browse open roles, read the full description, and see the exact interview
+  questions before deciding to apply
+- Apply with a short structured form; on most roles the interview opens straight
+  away so it can be finished in one sitting
 - Read the questions an admin has fed in, think, then record each answer in-browser
   (think-timer, hard answer limit, live level meter, re-record before you commit)
 - Play back every take, review the whole set, submit once
@@ -96,6 +100,31 @@ send it by hand. Set the `SMTP_*` variables in `.env` to switch on real delivery
 
 Set `BASE_URL` in production. Offer links are built from it, and getting it wrong means
 sending candidates a link to `localhost`.
+
+## Sign in with Google
+
+Candidates can use a Google account instead of a password. It shares the OAuth
+client with the Drive integration, so if you have already run
+`npm run google-auth` you only need to add one redirect URI:
+
+```
+https://your-host/api/auth/google/callback
+```
+
+in the Cloud console under that client's **Authorised redirect URIs**. The
+button appears on the sign-in page once `GOOGLE_CLIENT_ID` and
+`GOOGLE_CLIENT_SECRET` are set, and hides itself otherwise — email sign-in
+always works.
+
+A Google account is matched to an existing one by **verified** email address, so
+someone who applied with a password can later sign in with Google and land in
+the same account. An unverified address is refused outright: it could belong to
+anyone, and matching it would hand over the account.
+
+**Admin accounts stay password-only.** The console approves candidates and
+issues offer letters, so who can reach it should not depend on an outside
+directory. Google sign-in against an admin address is refused with a message
+pointing at the password form.
 
 ## Storing recordings in Google Drive
 
@@ -237,6 +266,12 @@ data/                 sqlite file + uploaded recordings (gitignored)
 **Pipeline.** An application's `stage` is the single source of truth, and legal moves
 live in `server/lib/stages.js` — the API refuses anything else, so you cannot skip a
 candidate from *Applied* straight to *Offer sent*.
+
+**When the interview happens** is set per role. The default, *as part of
+applying*, opens the questions the moment someone applies so they finish in one
+sitting; *after you screen them* keeps an admin reading the written application
+first and unlocking the interview by hand. Either way the question bank is
+readable on the role page, so nobody answers blind.
 
 **Audio.** Recorded with `MediaRecorder`, then handed to a storage driver —
 local disk or Google Drive — and served back through a route that checks

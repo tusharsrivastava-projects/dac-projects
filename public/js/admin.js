@@ -892,6 +892,16 @@ function openRoleForm(job) {
       ]),
     ]),
     el('div', { class: 'field' }, [
+      el('label', { for: 'rl-interview', text: 'When candidates record their interview' }),
+      el('select', { class: 'select', id: 'rl-interview', name: 'interviewMode' }, [
+        el('option', { value: 'at_application', text: 'As part of applying — they finish in one sitting',
+          selected: (job?.interviewMode || 'at_application') === 'at_application' }),
+        el('option', { value: 'after_screening', text: 'After you screen them — you unlock it by hand',
+          selected: job?.interviewMode === 'after_screening' }),
+      ]),
+      el('span', { class: 'field-hint', text: 'Recording at application time gets you more completed interviews; screening first means you only listen to people you already like on paper.' }),
+    ]),
+    el('div', { class: 'field' }, [
       el('label', { for: 'rl-summary', text: 'One-line summary' }),
       el('input', { class: 'input', id: 'rl-summary', name: 'summary', maxlength: '400', value: job?.summary || '' }),
     ]),
@@ -922,6 +932,7 @@ function openRoleForm(job) {
       title: form.title.value, employmentType: form.employmentType.value, status: form.status.value,
       department: form.department.value, location: form.location.value, stipend: form.stipend.value,
       openings: Number(form.openings.value), summary: form.summary.value, description: form.description.value,
+      interviewMode: form.interviewMode.value,
     };
     try {
       if (job) await api.patch(`/api/jobs/${job.id}`, payload);

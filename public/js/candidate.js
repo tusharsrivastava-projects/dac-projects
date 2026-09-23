@@ -226,7 +226,10 @@ async function viewRoles() {
 
 async function viewRole({ id }) {
   renderLoading(2);
-  const { job } = await api.get(`/api/jobs/${id}`);
+  const [{ job }, bank] = await Promise.all([
+    api.get(`/api/jobs/${id}`),
+    api.get(`/api/jobs/${id}/questions`).catch(() => ({ questions: [], totalSeconds: 0 })),
+  ]);
 
   setHeader({
     title: job.title,
@@ -240,13 +243,42 @@ async function viewRole({ id }) {
     : el('button', { class: 'btn btn-primary btn-block btn-lg', type: 'button', html: `${icon('send')}Apply for this role`,
         onClick: () => openApplyForm(job) });
 
+  const minutes = Math.max(1, Math.round(bank.totalSeconds / 60));
+
   render(el('div', { class: 'split' }, [
     el('div', { class: 'stack' }, [
-      el('div', { class: 'card card-pad' }, [
-        el('div', { class: 'job-meta', style: 'margin:0 0 16px', html: jobMetaTags(job) }),
-        job.summary ? el('p', { style: 'font-size:16px;color:var(--ink-2);margin-bottom:18px', text: job.summary }) : null,
-        el('div', { class: 'prose', text: job.description || 'No further description was provided for this role.' }),
+      el('div', { class: 'card' }, [
+        el('div', { class: 'card-head' }, [el('h2', { text: 'About this role' })]),
+        el('div', { class: 'card-body' }, [
+          el('div', { class: 'job-meta', style: 'margin:0 0 16px', html: jobMetaTags(job) }),
+          job.summary ? el('p', { style: 'font-size:16px;color:var(--ink-2);margin-bottom:18px', text: job.summary }) : null,
+          el('div', { class: 'prose', text: job.description || 'No further description was provided for this role.' }),
+        ]),
       ]),
+
+      // Nobody should have to guess what they are walking into.
+      bank.questions?.length ? el('div', { class: 'card' }, [
+        el('div', { class: 'card-head' }, [
+          el('h2', { class: 'grow', text: 'What you will be asked' }),
+          el('span', { class: 'tiny muted', text: `${bank.questions.length} question${bank.questions.length === 1 ? '' : 's'} · about ${minutes} min` }),
+        ]),
+        el('div', { class: 'card-body stack-sm' }, [
+          el('p', { class: 'tiny muted', style: 'margin:0 0 6px' },
+            'These are the real questions, in order. You answer each one by recording audio in the browser — a moment to think first, then a time limit. You can re-record any answer before you submit.'),
+          ...bank.questions.map((q) => el('div', { class: 'answer-block' }, [
+            el('div', { class: 'answer-head' }, [
+              el('div', { class: 'row-wrap', style: 'gap:6px;margin-bottom:5px' }, [
+                el('span', { class: 'tag', text: `Q${q.number}` }),
+                el('span', { class: 'tag', text: `${q.thinkSeconds}s to think` }),
+                el('span', { class: 'tag', text: `${fmtClock(q.answerSeconds)} to answer` }),
+                q.scope === 'role' ? el('span', { class: 'tag', text: 'role specific' }) : null,
+              ]),
+              el('div', { style: 'font-weight:600;font-size:14.5px', text: q.prompt }),
+              q.hint ? el('div', { class: 'tiny muted', style: 'margin-top:4px', text: q.hint }) : null,
+            ]),
+          ])),
+        ]),
+      ]) : null,
     ]),
     el('div', { class: 'stack' }, [
       el('div', { class: 'card card-pad stack' }, [
@@ -262,8 +294,9 @@ async function viewRole({ id }) {
       ]),
       el('div', { class: 'card card-pad' }, [
         el('div', { class: 'eyebrow', style: 'margin-bottom:8px', text: 'What happens next' }),
-        el('p', { class: 'tiny muted', style: 'margin:0',
-          text: `Apply here, and if the panel wants to hear more you will get ${job.questionCount} interview question${job.questionCount === 1 ? '' : 's'} to answer with a recording — no call to schedule.` }),
+        el('p', { class: 'tiny muted', style: 'margin:0', text: job.interviewMode === 'after_screening'
+          ? `Apply here, and if the panel wants to hear more you will get ${job.questionCount} interview question${job.questionCount === 1 ? '' : 's'} to answer with a recording — no call to schedule.`
+          : `Apply here and the ${job.questionCount} interview question${job.questionCount === 1 ? '' : 's'} open straight away, so you can finish in one sitting. About ${minutes} minutes, no call to schedule.` }),
       ]),
     ]),
   ]));
@@ -271,6 +304,10 @@ async function viewRole({ id }) {
 
 function openApplyForm(job) {
   const form = el('form', { class: 'stack', novalidate: true, id: 'apply-form' }, [
+    job.description ? el('details', { style: 'border:1px solid var(--line);border-radius:10px;padding:11px 14px;background:var(--surface-2)' }, [
+      el('summary', { style: 'cursor:pointer;font-size:13.5px;font-weight:600;color:var(--ink-2)', text: 'Read the job description again' }),
+      el('div', { class: 'prose', style: 'margin-top:10px;max-height:240px;overflow-y:auto', text: job.description }),
+    ]) : null,
     el('div', { class: 'field' }, [
       el('label', { for: 'ap-headline', text: 'One line about you' }),
       el('input', { class: 'input', id: 'ap-headline', name: 'headline', required: true, maxlength: '160',
@@ -324,7 +361,7 @@ function openApplyForm(job) {
     const submitBtn = document.querySelector('button[form=apply-form]');
     const restore = busy(submitBtn, 'Submitting…');
     try {
-      const { application } = await api.post('/api/applications', {
+      const res = await api.post('/api/applications', {
         jobId: job.id,
         headline: form.headline.value,
         skills: form.skills.value,
@@ -333,10 +370,16 @@ function openApplyForm(job) {
         resumeUrl: form.resumeUrl.value || undefined,
         coverNote: form.coverNote.value,
       });
+      const { application } = res;
       close();
-      toast('Application in. We have emailed you a confirmation.', 'good');
       await loadApplications();
-      go(`/applications/${application.id}`);
+      if (res.interviewOpen) {
+        toast('Application in. Your interview is open — record your answers now.', 'good', 5200);
+        go(`/interview/${application.id}`);
+      } else {
+        toast('Application in. We have emailed you a confirmation.', 'good');
+        go(`/applications/${application.id}`);
+      }
     } catch (err) {
       restore();
       errBox.append(el('div', { class: 'alert alert-error' }, [

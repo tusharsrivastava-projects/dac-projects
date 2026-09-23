@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -60,6 +61,17 @@ export const config = {
     scope: process.env.GOOGLE_DRIVE_SCOPE || 'https://www.googleapis.com/auth/drive',
     // Keep a copy on local disk as well. Useful when the disk does persist.
     keepLocalCopy: String(process.env.GDRIVE_KEEP_LOCAL_COPY || '') === 'true',
+  },
+
+  // Sign in with Google, for candidates. Reuses the Drive OAuth client when
+  // one is already set up, since it is the same Google project either way.
+  google: {
+    clientId: process.env.GOOGLE_CLIENT_ID || '',
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
+    redirectUri: process.env.GOOGLE_REDIRECT_URI || '',
+    // Signs the OAuth state parameter. Generated per process when unset, which
+    // is fine for one instance; set it explicitly if you run more than one.
+    stateSecret: process.env.GOOGLE_STATE_SECRET || crypto.randomBytes(32).toString('hex'),
   },
 
   org: {

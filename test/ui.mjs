@@ -56,18 +56,34 @@ console.log('\n2. candidate applies');
 await cand.click('a[data-path="/roles"]');
 await cand.waitForSelector('.job-card');
 await cand.locator('.job-card').first().getByText('View & apply').click();
-await cand.waitForSelector('.job-meta');
+// the roles list also has .job-meta, so wait for the detail view specifically
+await cand.waitForSelector('#view .split', { timeout: 10000 });
+await cand.waitForFunction(() => document.querySelector('#page-title')?.textContent !== 'Open roles', null, { timeout: 10000 });
+await cand.waitForTimeout(400);
+const rolePage = await cand.locator('#view').innerText();
+ok('role page carries the full description', rolePage.includes('What you will do'), rolePage.slice(0, 80));
+ok('and shows the questions before applying', /What you will be asked/.test(rolePage));
+ok('with the real question text', /Walk us through who you are/.test(rolePage));
+ok('and how long each answer gets', /to answer/.test(rolePage));
 await snap(cand, 'cand-role-detail');
+
 await cand.getByRole('button', { name: /Apply for this role/ }).click();
 await cand.waitForSelector('#apply-form');
 await cand.fill('#ap-headline', 'Final-year CS, two shipped ML side projects');
 await cand.fill('#ap-skills', 'Python, PyTorch, SQL, a little React');
 await cand.fill('#ap-experience', 'Built a retrieval bot for the campus handbook. Interned at a local analytics shop for a summer.');
 await cand.fill('#ap-cover', 'I want to work on ML that real students use, not just benchmarks. The AI Cell ships things people actually open.');
+ok('the description is re-readable while applying',
+   await cand.locator('#apply-form details').count() === 1);
 await snap(cand, 'cand-apply-form');
 await cand.click('button[form=apply-form]');
-await cand.waitForSelector('.timeline', { timeout: 10000 });
-ok('application created and detail shown', (await cand.locator('#page-title').innerText()).length > 0);
+
+// the role records at application time, so this lands on the interview
+await cand.waitForSelector('.iv-card', { timeout: 15000 });
+ok('applying opens the interview immediately',
+   (await cand.locator('#page-title').innerText()) === 'Audio interview',
+   await cand.locator('#page-title').innerText());
+ok('no admin unlock was needed', await cand.locator('.q-dot').count() >= 3);
 await snap(cand, 'cand-application');
 
 console.log('\n3. admin reviews and opens the interview');
@@ -88,15 +104,9 @@ await admin.locator('table.data tbody tr', { hasText: 'Ishita Rao' }).first().cl
 await admin.waitForSelector('.split');
 await snap(admin, 'admin-application-detail');
 
-await admin.getByRole('button', { name: 'Move to Screening' }).click();
-await admin.getByRole('button', { name: /^Move to Screening$/ }).last().click();
-await admin.waitForSelector('.toast', { timeout: 10000 });
-await admin.waitForTimeout(900);
-await admin.getByRole('button', { name: 'Move to Interview open' }).click();
-await admin.waitForSelector('.modal');
-await admin.locator('.modal-foot button', { hasText: 'Move to Interview open' }).click();
-await admin.waitForTimeout(1400);
-ok('moved to interview open', (await admin.locator('.pill').first().innerText()).includes('Interview'));
+ok('admin sees it already at Interview open',
+   (await admin.locator('.pill').first().innerText()).includes('Interview'),
+   await admin.locator('.pill').first().innerText());
 
 console.log('\n4. admin adds a question');
 await admin.click('a[data-path="/questions"]');
@@ -200,8 +210,8 @@ await admin.waitForTimeout(1300);
 
 console.log('\n5. candidate records the interview');
 await cand.goto(`${BASE}/app#/interview`, { waitUntil: 'networkidle' });
-await cand.waitForTimeout(800);
-await cand.locator('.app-row').first().click();
+await cand.waitForTimeout(900);
+if (await cand.locator('.app-row').count()) await cand.locator('.app-row').first().click();
 await cand.waitForSelector('.iv-card', { timeout: 10000 });
 const total = await cand.locator('.q-dot').count();
 ok('interview screen shows questions', total >= 4, `saw ${total}`);
@@ -308,6 +318,18 @@ await guest.waitForTimeout(2200);
 ok('offer accepted', (await guest.locator('.offer-banner h2').innerText()).includes('accepted'),
    await guest.locator('.offer-banner h2').innerText().catch(() => '?'));
 await snap(guest, 'public-offer-accepted');
+
+console.log('\n8b. sign-in options');
+{
+  const visitor = await newCtx('visitor');
+  await visitor.goto(BASE, { waitUntil: 'networkidle' });
+  await visitor.waitForTimeout(600);
+  const configured = process.env.GOOGLE_CLIENT_ID ? true : false;
+  const shown = await visitor.locator('#google-block:not(.hidden)').count() === 1;
+  ok(configured ? 'Google sign-in is offered' : 'Google sign-in stays hidden when unconfigured',
+     shown === configured, `configured=${configured} shown=${shown}`);
+  ok('email sign-in is always available', await visitor.locator('#login-form').count() === 1);
+}
 
 console.log('\n9. mobile + logout');
 const mob = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });

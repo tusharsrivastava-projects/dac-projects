@@ -19,6 +19,7 @@ const shape = (j) => ({
   description: j.description,
   openings: j.openings,
   status: j.status,
+  interviewMode: j.interview_mode || 'at_application',
   archived: Boolean(j.archived_at),
   archivedAt: j.archived_at ?? null,
   createdAt: j.created_at,
@@ -74,6 +75,41 @@ jobsRouter.get('/:id', wrap((req, res) => {
   res.json({ job: shape(job) });
 }));
 
+/**
+ * The questions a candidate will be asked for this role. Visible before they
+ * apply: knowing what is coming is the difference between a considered answer
+ * and a panicked one, and it costs the panel nothing.
+ */
+jobsRouter.get('/:id/questions', wrap((req, res) => {
+  const id = v.int(req.params.id, 'Job id', { min: 1 });
+  const job = db.prepare('SELECT * FROM jobs WHERE id = ?').get(id);
+  if (!job) throw notFound('That role does not exist.');
+  if (req.user?.role !== 'admin' && (job.status !== 'open' || job.archived_at)) {
+    throw notFound('That role is no longer open.');
+  }
+
+  const rows = db.prepare(`
+    SELECT id, prompt, hint, think_seconds, answer_seconds, job_id
+      FROM questions
+     WHERE active = 1 AND (job_id IS NULL OR job_id = ?)
+     ORDER BY job_id IS NULL DESC, position, id
+  `).all(id);
+
+  res.json({
+    jobId: id,
+    interviewMode: job.interview_mode || 'at_application',
+    totalSeconds: rows.reduce((n, q) => n + q.think_seconds + q.answer_seconds, 0),
+    questions: rows.map((q, i) => ({
+      number: i + 1,
+      prompt: q.prompt,
+      hint: q.hint,
+      thinkSeconds: q.think_seconds,
+      answerSeconds: q.answer_seconds,
+      scope: q.job_id ? 'role' : 'general',
+    })),
+  });
+}));
+
 const readJobBody = (body) => ({
   title: v.str(body.title, 'Title', { min: 3, max: 140 }),
   department: v.str(body.department, 'Team', { required: false, max: 120 }) || 'DGU AI Cell',
@@ -85,13 +121,17 @@ const readJobBody = (body) => ({
   description: v.str(body.description, 'Description', { required: false, max: 12000 }),
   openings: v.int(body.openings, 'Openings', { min: 1, max: 500, fallback: 1 }),
   status: v.oneOf(body.status || 'open', 'Status', ['draft', 'open', 'closed']),
+  interview_mode: v.oneOf(body.interviewMode || 'at_application', 'Interview timing',
+    ['at_application', 'after_screening']),
 });
 
 jobsRouter.post('/', requireAdmin, wrap((req, res) => {
   const j = readJobBody(req.body);
   const id = db.prepare(`
-    INSERT INTO jobs (code, title, department, location, employment_type, stipend, summary, description, openings, status, created_by)
-    VALUES (@code, @title, @department, @location, @employment_type, @stipend, @summary, @description, @openings, @status, @created_by)
+    INSERT INTO jobs (code, title, department, location, employment_type, stipend, summary, description,
+                      openings, status, interview_mode, created_by)
+    VALUES (@code, @title, @department, @location, @employment_type, @stipend, @summary, @description,
+            @openings, @status, @interview_mode, @created_by)
   `).run({ ...j, code: jobCode(j.title), created_by: req.user.id }).lastInsertRowid;
 
   logActivity({ actorId: req.user.id, actorName: req.user.fullName, action: 'job.created', entity: 'job', entityId: id, detail: j.title });
@@ -111,7 +151,7 @@ jobsRouter.patch('/:id', requireAdmin, wrap((req, res) => {
     UPDATE jobs SET title = @title, department = @department, location = @location,
            employment_type = @employment_type, stipend = @stipend, summary = @summary,
            description = @description, openings = @openings, status = @status,
-           updated_at = datetime('now')
+           interview_mode = @interview_mode, updated_at = datetime('now')
      WHERE id = @id
   `).run({ ...j, id });
 

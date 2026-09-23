@@ -95,20 +95,32 @@ applicationsRouter.post('/', requireAuth, wrap(async (req, res) => {
     cover_note: v.str(req.body.coverNote, 'Why this role', { min: 20, max: 4000 }),
   };
 
+  // When the role records at application time, the interview opens right away
+  // rather than waiting on an admin — the candidate goes straight from the form
+  // to the questions and finishes in one sitting.
+  const recordsNow = (job.interview_mode || 'at_application') === 'at_application';
+
   const id = db.prepare(`
-    INSERT INTO applications (candidate_id, job_id, headline, experience, skills, portfolio_url, resume_url, cover_note)
-    VALUES (@candidate_id, @job_id, @headline, @experience, @skills, @portfolio_url, @resume_url, @cover_note)
-  `).run(payload).lastInsertRowid;
+    INSERT INTO applications (candidate_id, job_id, headline, experience, skills, portfolio_url, resume_url,
+                              cover_note, stage, interview_unlocked_at)
+    VALUES (@candidate_id, @job_id, @headline, @experience, @skills, @portfolio_url, @resume_url,
+            @cover_note, @stage, @unlocked)
+  `).run({
+    ...payload,
+    stage: recordsNow ? 'interview' : 'applied',
+    unlocked: recordsNow ? new Date().toISOString() : null,
+  }).lastInsertRowid;
 
   logActivity({ actorId: req.user.id, actorName: req.user.fullName, action: 'application.submitted', entity: 'application', entityId: id, detail: job.title });
 
   const app = loadApplication(id);
-  await notify.notifyApplicationReceived({
+  const notifier = recordsNow ? notify.notifyInterviewUnlocked : notify.notifyApplicationReceived;
+  await notifier({
     candidate: { email: app.candidate_email, full_name: app.candidate_name },
     job, application: app, link: dashLink(req),
   });
 
-  res.status(201).json({ application: shapeApplication(app) });
+  res.status(201).json({ application: shapeApplication(app), interviewOpen: recordsNow });
 }));
 
 // ── Candidate: my applications ───────────────────────────────────────────────

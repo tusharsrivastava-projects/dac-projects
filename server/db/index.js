@@ -30,11 +30,19 @@ const MIGRATIONS = [
   ['answers', 'drive_file_id', 'TEXT'],
   ['answers', 'drive_link', 'TEXT'],
   ['jobs', 'archived_at', 'TEXT'],
+  ['jobs', 'interview_mode', "TEXT NOT NULL DEFAULT 'at_application'"],
+  ['users', 'auth_provider', "TEXT NOT NULL DEFAULT 'password'"],
+  ['users', 'google_id', 'TEXT'],
+  ['users', 'avatar_url', 'TEXT'],
   ['applications', 'drive_folder_id', 'TEXT'],
   ['applications', 'drive_folder_link', 'TEXT'],
 ];
 
 const applied = MIGRATIONS.filter(([t, c, d]) => ensureColumn(t, c, d));
+
+// ALTER TABLE ADD COLUMN cannot carry a UNIQUE constraint, so the index that
+// keeps one Google account per person is created separately.
+db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_users_google ON users (google_id) WHERE google_id IS NOT NULL');
 if (applied.length) {
   console.log(`Applied ${applied.length} schema migration(s): ${applied.map(([t, c]) => `${t}.${c}`).join(', ')}`);
 }
