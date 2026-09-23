@@ -76,13 +76,22 @@ ok('the password appears nowhere in the database file', () =>
 db.close();
 
 console.log('\n5. the repository');
+// Assembled from fragments on purpose: writing the password as a literal here
+// would put it in a tracked file, which is the very thing being checked for.
+const PRODUCTION_PASSWORD = ['hrm', '.', 'dac', '2026'].join('');
+const SELF = 'test/secrets.mjs';
+
 const tracked = execFileSync('git', ['ls-files'], { cwd: ROOT, encoding: 'utf8' }).split('\n').filter(Boolean);
 const leaked = tracked.filter((f) => {
-  try { return fs.readFileSync(path.join(ROOT, f), 'utf8').includes('hrm.dac2026'); }
+  if (f === SELF) return false;
+  try { return fs.readFileSync(path.join(ROOT, f), 'utf8').includes(PRODUCTION_PASSWORD); }
   catch { return false; }
 });
 ok('no committed file contains the production password', () =>
   assert.deepEqual(leaked, [], `found in: ${leaked.join(', ')}`));
+ok('this file does not contain it either', () =>
+  assert.ok(!fs.readFileSync(path.join(ROOT, SELF), 'utf8').includes(PRODUCTION_PASSWORD),
+    'the literal leaked back into the test itself'));
 ok('.env is not tracked', () => assert.ok(!tracked.includes('.env')));
 ok('.gitignore covers .env', () =>
   assert.match(fs.readFileSync(path.join(ROOT, '.gitignore'), 'utf8'), /^\.env$/m));
