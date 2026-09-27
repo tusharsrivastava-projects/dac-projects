@@ -53,18 +53,19 @@ export async function askAssistant(text, { context = { page: 'search' }, positio
 
 /**
  * Renders the search input with a mic and an AI reply line.
- * opts: { context, placeholder, onResult(result, text), examples: true, size: 'lg'|'md', speakReplies: true }
+ * opts: { context, placeholder, onResult(result, text), examples: true, size: 'lg'|'md', speakReplies: true, voice: true }
  */
 export function mountAiBox(host, opts = {}) {
   const narrow = window.matchMedia('(max-width: 520px)').matches;
+  const mic = voiceSupported && opts.voice !== false;
   const { context = { page: 'search' }, placeholder = narrow ? 'Gym near me under ₹1,000…' : 'Try "gym near me under ₹1,000" or tap the mic', onResult, examples = true, size = 'lg', speakReplies = true, initial = '' } = opts;
   host.innerHTML = `
     <form class="ai-box" role="search" autocomplete="off">
       <div class="input-group">
         ${icon('sparkle')}
-        <input class="input ${size === 'lg' ? 'ai-input-lg' : ''}" name="q" value="${esc(initial)}" placeholder="${esc(placeholder)}" aria-label="Describe what you are looking for" style="padding-right:${voiceSupported ? 132 : 92}px">
+        <input class="input ${size === 'lg' ? 'ai-input-lg' : ''}" name="q" value="${esc(initial)}" placeholder="${esc(placeholder)}" aria-label="Describe what you are looking for" style="padding-right:${mic ? 132 : 92}px">
         <div class="row" style="position:absolute;right:5px;gap:6px">
-          ${voiceSupported ? `<button type="button" class="btn btn-secondary btn-icon btn-sm mic-btn" aria-label="Search by voice" aria-pressed="false" title="Search by voice">${icon('mic')}</button>` : ''}
+          ${mic ? `<button type="button" class="btn btn-secondary btn-icon btn-sm mic-btn" aria-label="Search by voice" aria-pressed="false" title="Search by voice">${icon('mic')}</button>` : ''}
           <button type="submit" class="btn btn-primary btn-sm">${icon('search', 'sm')}<span class="hide-xs">Search</span></button>
         </div>
       </div>

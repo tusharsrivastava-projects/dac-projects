@@ -48,7 +48,7 @@ export function listen({ onInterim, onResult, onEnd, onError, lang = 'en-IN' } =
 /** Reads a reply aloud, if the member has not turned that off. */
 export function speak(text) {
   if (!('speechSynthesis' in window) || !text) return;
-  if (localStorage.getItem('subtize.voiceReplies') === 'off') return;
+  try { if (localStorage.getItem('subtize.voiceReplies') === 'off') return; } catch { /* storage blocked: default to speaking */ }
   try {
     window.speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text.replace(/₹/g, 'rupees '));

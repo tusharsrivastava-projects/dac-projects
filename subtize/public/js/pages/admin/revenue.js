@@ -61,9 +61,9 @@ export async function renderRevenue({ view, query }) {
         { label: 'Gross', cls: 'right', render: (s) => money(s.gross) },
         { label: 'Commission', cls: 'right', render: (s) => `${money(s.commission)} <span class="cell-sub">(${s.percent}%)</span>` },
         { label: 'Payable', cls: 'right', render: (s) => `<b>${money(s.payable)}</b>` },
-        { label: 'Status', render: (s) => pill(s.status) },
+        { label: 'Status', render: (s) => pill(s.status, s.status === 'pending' ? 'Pending' : null) },
         { label: 'Reference', render: (s) => (s.reference ? `${mono(s.reference)}${s.paidAt ? `<div class="cell-sub">paid ${esc(fmtDateTime(s.paidAt))}</div>` : ''}` : dash) },
-        { label: '', cls: 'nowrap', render: (s) => (s.status === 'paid' ? `<span class="muted small">${icon('lock', 'sm')} Locked</span>` : `<button type="button" class="btn btn-secondary btn-sm" data-status="${s.id}">Update status</button>`) },
+        { label: '', cls: 'nowrap', render: (s) => (s.status === 'paid' ? `<span class="muted small row" style="--gap:4px">${icon('lock', 'sm')} Locked</span>` : `<button type="button" class="btn btn-secondary btn-sm" data-status="${s.id}">Update status</button>`) },
       ], settlements, { empty: `<div class="empty"><div class="icon-tile">${icon('wallet')}</div><h3>No settlements for ${esc(m)}</h3><p>Generate them once the month's payments are verified.</p></div>` })}
     </section>
 

@@ -307,6 +307,11 @@ r = await admin('GET', '/api/admin/outbox');
 ok('member notices are also emailed (outbox in dev)', r.json.messages.some((m) => m.to === 'priya@subtize.ai' && /ends on/.test(m.subject)));
 ok('admins are not emailed for queue items', !r.json.messages.some((m) => m.to === 'admin@subtize.ai'));
 
+r = await priya('GET', '/api/coupons');
+ok('the coupons list tells a member which codes they have used up', r.json.coupons.find((c) => c.code === 'WELCOME10')?.canUse === false);
+r = await priya('POST', '/api/assistant', { text: 'Is Iron Paradise Gym open on Sunday?', lat: 30.344, lng: 78.061 });
+ok('a chain name resolves to the nearest branch', r.json.service?.name === 'Iron Paradise Gym, Rajpur Road', r.json.service?.name);
+
 section('12. security edges');
 r = await guest('GET', '/api/me/overview', null, { allowFail: true });
 ok('member API needs a session', r.status === 401);

@@ -445,7 +445,7 @@ export async function renderServiceDetail({ view, params }) {
           { label: 'Field', render: (c) => esc(changeFieldLabel(c.field)) },
           { label: 'Current → proposed', render: (c) => `${changeValue(c.field, c.currentValue)} → <b>${changeValue(c.field, c.proposedValue)}</b>` },
           { label: 'Note', render: (c) => orDash(c.note) },
-          { label: 'Status', render: (c) => `${pill(c.status)}${c.decisionNote ? `<div class="cell-sub">${esc(c.decisionNote)}</div>` : ''}` },
+          { label: 'Status', render: (c) => `${pill(c.status, c.status === 'pending' ? 'Pending' : null)}${c.decisionNote ? `<div class="cell-sub">${esc(c.decisionNote)}</div>` : ''}` },
           { label: 'Requested', render: (c) => esc(fmtAgo(c.createdAt)) },
         ], data.changeRequests, { empty: '<p class="muted small">No change requests.</p>' }), { ic: 'edit', actions: data.changeRequests.some((c) => c.status === 'pending') ? '<a class="btn btn-primary btn-sm" href="#/services/changes">Decide</a>' : '' })}
       </div>
@@ -513,7 +513,7 @@ export async function renderChangeRequests({ view, query }) {
       { label: 'Proposed', render: (c) => `<b>${changeValue(c.field, c.proposedValue)}</b>` },
       { label: 'Lister note', render: (c) => orDash(c.note) },
       { label: 'Requested', render: (c) => `<span title="${esc(fmtDateTime(c.createdAt))}">${esc(fmtAgo(c.createdAt))}</span>` },
-      { label: 'Status', render: (c) => `${pill(c.status)}${c.decisionNote ? `<div class="cell-sub">${esc(c.decisionNote)}</div>` : ''}${c.decidedAt ? `<div class="cell-sub">${esc(fmtDate(c.decidedAt))}</div>` : ''}` },
+      { label: 'Status', render: (c) => `${pill(c.status, c.status === 'pending' ? 'Pending' : null)}${c.decisionNote ? `<div class="cell-sub">${esc(c.decisionNote)}</div>` : ''}${c.decidedAt ? `<div class="cell-sub">${esc(fmtDate(c.decidedAt))}</div>` : ''}` },
       {
         label: 'Decision',
         cls: 'nowrap',

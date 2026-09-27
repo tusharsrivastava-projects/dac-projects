@@ -106,8 +106,9 @@ small, .small { font-size: 13px; }
 @media (max-width: 1100px) { .grid.cols-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } .split { grid-template-columns: 1fr; } }
 @media (max-width: 760px) { .grid.cols-2, .grid.cols-3 { grid-template-columns: 1fr; } }
 @media (max-width: 480px) { .grid.cols-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-.mt-0 { margin-top: 0 !important; } .mt-8 { margin-top: 8px; } .mt-16 { margin-top: 16px; } .mt-24 { margin-top: 24px; } .mt-32 { margin-top: 32px; }
-.mb-8 { margin-bottom: 8px; } .mb-16 { margin-bottom: 16px; } .mb-24 { margin-bottom: 24px; }
+/* Spacing utilities win over component margins, as utilities should. */
+.mt-0 { margin-top: 0 !important; } .mt-8 { margin-top: 8px !important; } .mt-16 { margin-top: 16px !important; } .mt-24 { margin-top: 24px !important; } .mt-32 { margin-top: 32px !important; }
+.mb-8 { margin-bottom: 8px !important; } .mb-16 { margin-bottom: 16px !important; } .mb-24 { margin-bottom: 24px !important; }
 .center { text-align: center; }
 .divider { height: 1px; background: var(--line); margin: 16px 0; border: 0; }
 .ai-input-lg { height: 54px; font-size: 16px; border-radius: 14px; }
@@ -115,7 +116,7 @@ small, .small { font-size: 13px; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 /* ── Icons ──────────────────────────────────────────────────────────────── */
-.icon { width: 20px; height: 20px; flex: none; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.icon { display: inline-block; vertical-align: -0.25em; width: 20px; height: 20px; flex: none; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .icon.sm { width: 16px; height: 16px; }
 .icon.lg { width: 24px; height: 24px; }
 .icon-tile { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; background: var(--green-soft); color: var(--green); flex: none; }
@@ -253,7 +254,7 @@ legend { padding: 0 6px; font-weight: 600; color: var(--text-2); font-size: 14px
 .offer-tag { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 8px; background: var(--green-soft); color: var(--green); font-size: 12.5px; font-weight: 600; border: 1px dashed var(--green-line); }
 
 /* ── Tables ─────────────────────────────────────────────────────────────── */
-.table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface); }
+.table-wrap { position: relative; overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface); }
 .table { width: 100%; border-collapse: collapse; font-size: 14px; }
 .table th { text-align: left; font-size: 12px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); padding: 12px 16px; border-bottom: 1px solid var(--line); background: var(--surface-2); white-space: nowrap; }
 .table td { padding: 13px 16px; border-bottom: 1px solid var(--line); vertical-align: middle; }

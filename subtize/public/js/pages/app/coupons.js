@@ -22,7 +22,9 @@ function couponCard(c) {
       <dt>Uses left</dt><dd>${c.remaining == null ? 'Unlimited' : c.remaining}</dd>
     </dl>
     <div class="row wrap mt-16" style="--gap:8px;margin-top:auto;padding-top:16px">
-      <a class="btn btn-primary btn-sm grow" href="${useHref}">${icon('zap', 'sm')} Use ${c.service ? 'now' : 'on a service'}</a>
+      ${c.canUse === false
+        ? `<span class="pill tone-neutral grow" style="justify-content:center;height:34px">${icon('check', 'sm')} You've used this coupon</span>`
+        : `<a class="btn btn-primary btn-sm grow" href="${useHref}">${icon('zap', 'sm')} Use ${c.service ? 'now' : 'on a service'}</a>`}
       <button type="button" class="btn btn-secondary btn-sm" data-copy="${esc(c.code)}">${icon('copy', 'sm')} Copy</button>
     </div>
   </article>`;

@@ -46,6 +46,14 @@ export function liveCoupons({ publicOnly = true } = {}) {
   return rows.filter((c) => c.usage_limit == null || c.used < c.usage_limit);
 }
 
+/** How many times this member has used each coupon (pending or verified payments). */
+export function myCouponUses(userId) {
+  const rows = db.prepare(
+    "SELECT coupon_id, COUNT(*) AS n FROM payments WHERE user_id = ? AND coupon_id IS NOT NULL AND status IN ('pending', 'verified') GROUP BY coupon_id",
+  ).all(userId);
+  return new Map(rows.map((r) => [r.coupon_id, r.n]));
+}
+
 export const couponLabel = (c) =>
   c.discount_type === 'percent' ? `${c.discount_value}% off` : `₹${Math.round(c.discount_value / 100)} off`;
 
@@ -74,7 +82,8 @@ function imagesFor(ids) {
 export function publicService(row, ctx = {}) {
   const days = splitDays(row.available_days);
   const count = ctx.counts?.get(row.id) ?? 0;
-  const offers = (ctx.coupons || []).filter((c) => row.coupons_enabled && (c.service_id == null || c.service_id === row.id));
+  const offers = (ctx.coupons || []).filter((c) => row.coupons_enabled && (c.service_id == null || c.service_id === row.id)
+    && !((ctx.myCouponUses?.get(c.id) || 0) >= c.per_user_limit));
   // Rank by what it would actually save on one month, so ₹150 off and 15% off compare fairly.
   const saving = (c) => {
     if (row.monthly_price < c.min_value) return 0;
@@ -141,13 +150,16 @@ export function viewerContext(user, { origin = null } = {}) {
   const ctx = { counts: subscriberCounts(), seats: seatsTakenAll(), coupons: liveCoupons(), origin, mine: new Map(), excluded: new Set() };
   if (user) {
     const subs = db.prepare(
-      `SELECT service_id, status, public_id, end_date FROM subscriptions
-        WHERE user_id = ? AND status IN ('pending_payment', 'pending_verification', 'verified', 'active')
-        ORDER BY id DESC`,
+      `SELECT sub.service_id, sub.status, sub.public_id, sub.end_date,
+              (SELECT public_id FROM payments p WHERE p.subscription_id = sub.id ORDER BY p.id DESC LIMIT 1) AS payment_id
+         FROM subscriptions sub
+        WHERE sub.user_id = ? AND sub.status IN ('pending_payment', 'pending_verification', 'verified', 'active')
+        ORDER BY sub.id DESC`,
     ).all(user.id);
     for (const s of subs) {
-      if (!ctx.mine.has(s.service_id)) ctx.mine.set(s.service_id, { status: s.status, id: s.public_id, endDate: s.end_date });
+      if (!ctx.mine.has(s.service_id)) ctx.mine.set(s.service_id, { status: s.status, id: s.public_id, endDate: s.end_date, paymentId: s.payment_id });
     }
+    ctx.myCouponUses = myCouponUses(user.id);
     for (const r of db.prepare('SELECT service_id FROM user_exclusions WHERE user_id = ?').all(user.id)) {
       ctx.excluded.add(r.service_id);
     }

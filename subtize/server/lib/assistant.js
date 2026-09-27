@@ -12,7 +12,7 @@
  * the real catalogue by resolve() here.
  */
 import { db } from '../db/index.js';
-import { findLocation } from './geo.js';
+import { distanceKm, findLocation } from './geo.js';
 import { addDays, dayKey, today } from './dates.js';
 import { DAY_NAMES, searchServices, serviceDetail, tokens } from './catalog.js';
 import { formatINR } from './money.js';
@@ -193,18 +193,25 @@ function findAreaIn(text) {
 
 /* ── Resolution against the catalogue ──────────────────────────────────── */
 
-/** Finds the service someone is naming, e.g. "iron paradise" → Iron Paradise Gym. */
-export function matchServiceByName(text) {
+/**
+ * Finds the service someone is naming, e.g. "iron paradise" → Iron Paradise Gym.
+ * Chains have several branches; a mentioned area wins, then the nearest one.
+ */
+export function matchServiceByName(text, origin = null) {
   const words = tokens(text);
   if (!words.length) return null;
-  const rows = db.prepare("SELECT id, name, slug FROM services WHERE status = 'active' AND deleted_at IS NULL").all();
+  const rows = db.prepare("SELECT id, name, slug, area, lat, lng FROM services WHERE status = 'active' AND deleted_at IS NULL").all();
+  const lower = ` ${String(text).toLowerCase()} `;
   let best = null;
   for (const r of rows) {
-    const nameWords = tokens(r.name);
-    if (!nameWords.length) continue;
-    const hits = nameWords.filter((w) => words.includes(w)).length;
-    const score = hits / nameWords.length;
-    if (hits >= Math.min(2, nameWords.length) && score >= 0.5 && (!best || score > best.score)) best = { ...r, score };
+    const brand = tokens(r.name.split(',')[0]);
+    if (!brand.length) continue;
+    const hits = brand.filter((w) => words.includes(w)).length;
+    if (hits < Math.min(2, brand.length) || hits / brand.length < 0.5) continue;
+    const areaHit = lower.includes(r.area.toLowerCase()) ? 1 : 0;
+    const dist = origin ? distanceKm(origin, r) ?? 1e6 : 0;
+    const cand = { ...r, score: hits / brand.length + areaHit, dist };
+    if (!best || cand.score > best.score || (cand.score === best.score && cand.dist < best.dist)) best = cand;
   }
   return best;
 }
@@ -264,7 +271,7 @@ export function resolve(parsed, { user = null, origin = null, context = {} } = {
   }
 
   // A named service beats a category search for subscribe and availability.
-  const named = matchServiceByName(parsed.text) || (context.serviceId ? { id: context.serviceId } : null);
+  const named = matchServiceByName(parsed.text, searchOrigin) || (context.serviceId ? { id: context.serviceId } : null);
 
   if (intent === 'availability') {
     const svc = named ? serviceDetail(named.id, { user, origin: searchOrigin }) : null;

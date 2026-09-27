@@ -1,6 +1,6 @@
 import express from 'express';
 import { db } from '../db/index.js';
-import { categoriesWithCounts, couponLabel, liveCoupons, searchServices, serviceDetail } from '../lib/catalog.js';
+import { categoriesWithCounts, couponLabel, liveCoupons, myCouponUses, searchServices, serviceDetail } from '../lib/catalog.js';
 import { allLocations, cityCentre, findLocation } from '../lib/geo.js';
 import { notFound, wrap } from '../lib/http.js';
 import { parseRules, resolve } from '../lib/assistant.js';
@@ -100,8 +100,9 @@ publicRouter.post('/assistant', assistantLimit, wrap(async (req, res) => {
   res.json(resolve(parsed, { user: req.user, origin, context }));
 }));
 
-publicRouter.get('/coupons', (_req, res) => {
+publicRouter.get('/coupons', (req, res) => {
   const rows = liveCoupons();
+  const mine = req.user ? myCouponUses(req.user.id) : null;
   const names = new Map(db.prepare('SELECT id, name, slug FROM services').all().map((s) => [s.id, s]));
   res.json({
     coupons: rows.map((c) => ({
@@ -114,6 +115,9 @@ publicRouter.get('/coupons', (_req, res) => {
       minValue: c.min_value,
       expiresOn: c.expires_on,
       remaining: c.usage_limit == null ? null : Math.max(0, c.usage_limit - c.used),
+      // Signed-in members learn whether they have used up their own allowance.
+      usedByMe: mine ? mine.get(c.id) || 0 : null,
+      canUse: mine ? (mine.get(c.id) || 0) < c.per_user_limit : null,
       service: c.service_id ? { id: c.service_id, name: names.get(c.service_id)?.name, slug: names.get(c.service_id)?.slug } : null,
     })),
   });
