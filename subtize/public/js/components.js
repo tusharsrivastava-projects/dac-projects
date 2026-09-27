@@ -106,7 +106,7 @@ export const emptyState = ({ ic = 'inbox', title, text = '', action = '' }) => `
  * a hover tooltip per bar, and a table view for screen readers and exact values.
  */
 export function revenueChart(host, rows, { payoutLabel = 'Lister payout', commissionLabel = 'Subtize.ai commission' } = {}) {
-  const W = 640; const H = 240; const padL = 52; const padR = 12; const padT = 16; const padB = 30;
+  const W = Math.max(300, Math.min(1100, Math.round(host.clientWidth || 640))); const H = 240; const padL = 52; const padR = 12; const padT = 16; const padB = 30;
   const max = Math.max(1, ...rows.map((r) => r.gross));
   const nice = niceMax(max);
   const plotW = W - padL - padR;

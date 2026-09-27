@@ -48,7 +48,7 @@ const WEEKDAYS = 'mon,tue,wed,thu,fri';
 export const DEMO_SERVICES = [
   ['Iron Paradise Gym', 'gym', 'Full-access strength and cardio floor with a trainer on every shift.',
     'Free weights, a squat rack zone, 30+ cardio machines and a trainer on the floor every shift. Your first week includes a posture and goals assessment. Lockers and showers included.',
-    999, WEEK6, '5:30 am – 10:30 pm', null, 'visits', 'One visit per day. Guests not included.', 'Carry a towel and indoor shoes. Show your Subtize card at reception.', 'in_person', '1,3,6', ['Rajpur Road', 'Ballupur', 'Race Course', 'Clement Town']],
+    999, WEEK6, '5:30 am – 10:30 pm', null, 'visits', 'One visit per day. Guests not included.', 'Carry a towel and indoor shoes. Show your Subtize.ai card at reception.', 'in_person', '1,3,6', ['Rajpur Road', 'Ballupur', 'Race Course', 'Clement Town']],
   ['Pulse CrossFit Box', 'gym', 'Coached CrossFit classes, capped at 14 people.',
     'Every session is coached: a warm-up, a skill block and a WOD scaled to your level. Beginners get two foundation classes in the first week.',
     1799, WEEK6, 'Batches at 6, 7, 8 am and 6, 7 pm', 20, 'classes', 'Book your batch a day ahead. Missed bookings count as used.', 'No outdoor shoes on the rig floor.', 'in_person', '1,3', ['Jakhan', 'Vasant Vihar']],

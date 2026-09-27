@@ -402,6 +402,7 @@ body.has-bottomnav .toasts { bottom: calc(var(--bottomnav-h) + 16px); }
 .topbar .top-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; }
 .bell { position: relative; }
 .bell .badge { position: absolute; top: 3px; right: 3px; min-width: 17px; height: 17px; font-size: 10px; padding: 0 4px; }
+.view:focus { outline: none; }
 .view { padding: 28px; max-width: 1320px; width: 100%; }
 .page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 22px; }
 .page-head p { margin: 6px 0 0; color: var(--muted); }

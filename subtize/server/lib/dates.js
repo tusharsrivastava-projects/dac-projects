@@ -50,3 +50,13 @@ const clock = new Intl.DateTimeFormat('en-GB', { timeZone: TZ, hour: '2-digit', 
 
 /** 'YYYY-MM-DD HH:MM:SS' in the app timezone, for rows whose date part is compared against today(). */
 export const localStamp = () => `${today()} ${clock.format(new Date())}`;
+
+const offsetFmt = new Intl.DateTimeFormat('en-US', { timeZone: TZ, timeZoneName: 'longOffset' });
+
+/** Turns a localStamp() value into an ISO string with the app timezone's offset, safe for browsers. */
+export function localToIso(stamp) {
+  if (!stamp) return null;
+  const [date, time = '00:00:00'] = String(stamp).split(' ');
+  const off = offsetFmt.formatToParts(new Date(`${date}T12:00:00Z`)).find((p) => p.type === 'timeZoneName')?.value.replace('GMT', '') || '';
+  return `${date}T${time}${off && off !== '' ? off : 'Z'}`;
+}

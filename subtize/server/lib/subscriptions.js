@@ -1,7 +1,7 @@
 import { db, notify } from '../db/index.js';
 import { badRequest } from './http.js';
 import { cardCode } from './ids.js';
-import { addDays, addMonths, daysBetween, localStamp, planEnd, today } from './dates.js';
+import { addDays, addMonths, daysBetween, localStamp, localToIso, planEnd, today } from './dates.js';
 import { platformSettings } from './platform.js';
 import { DAY_NAMES } from './catalog.js';
 import { formatINR } from './money.js';
@@ -157,7 +157,8 @@ export function usageSummary(sub) {
     percent: allowed ? Math.min(100, Math.round((used / allowed) * 100)) : 0,
     cycleStart,
     cycleEnd,
-    log: log.slice(0, 50),
+    // Stamped in app-local time; sent with its offset so browsers show the real time.
+    log: log.slice(0, 50).map((l) => ({ ...l, logged_at: localToIso(l.logged_at) })),
   };
 }
 

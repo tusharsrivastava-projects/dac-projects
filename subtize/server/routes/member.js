@@ -390,25 +390,40 @@ function profileOf(id) {
 memberRouter.get('/profile', (req, res) => res.json({ profile: profileOf(req.user.id) }));
 
 memberRouter.put('/profile', wrap((req, res) => {
-  const b = req.body;
-  const fullName = v.str(b.fullName, 'Full name', { min: 2, max: 120 });
-  const phone = v.phone(b.phone, 'Phone', { required: false });
-  const address = v.str(b.address, 'Address', { required: false, max: 300 });
-  const city = v.str(b.city, 'City', { required: false, max: 80 });
-  const area = v.str(b.preferredArea, 'Preferred location', { required: false, max: 120 });
-  const upiId = v.vpa(b.upiId, 'UPI ID', { required: false });
-  const paymentNote = v.str(b.paymentNote, 'Payment note', { required: false, max: 200 });
-
-  let lat = b.prefLat != null && b.prefLat !== '' ? v.num(b.prefLat, 'Latitude', { min: -90, max: 90 }) : null;
-  let lng = b.prefLng != null && b.prefLng !== '' ? v.num(b.prefLng, 'Longitude', { min: -180, max: 180 }) : null;
-  if (area && (lat == null || lng == null)) {
-    const loc = findLocation(area);
-    if (loc) { lat = loc.lat; lng = loc.lng; }
+  // Partial update: only the fields sent are changed, so a form that edits
+  // name and phone never blanks the saved location or UPI details.
+  const b = req.body || {};
+  const has = (k) => Object.prototype.hasOwnProperty.call(b, k);
+  const cur = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id);
+  const next = {
+    full_name: has('fullName') ? v.str(b.fullName, 'Full name', { min: 2, max: 120 }) : cur.full_name,
+    phone: has('phone') ? v.phone(b.phone, 'Phone', { required: false }) : cur.phone,
+    address: has('address') ? v.str(b.address, 'Address', { required: false, max: 300 }) : cur.address,
+    city: has('city') ? v.str(b.city, 'City', { required: false, max: 80 }) : cur.city,
+    preferred_area: has('preferredArea') ? v.str(b.preferredArea, 'Preferred location', { required: false, max: 120 }) : cur.preferred_area,
+    upi_id: has('upiId') ? v.vpa(b.upiId, 'UPI ID', { required: false }) : cur.upi_id,
+    payment_note: has('paymentNote') ? v.str(b.paymentNote, 'Payment note', { required: false, max: 200 }) : cur.payment_note,
+    pref_lat: cur.pref_lat,
+    pref_lng: cur.pref_lng,
+  };
+  const coord = (k, label, lim) => (b[k] != null && b[k] !== '' ? v.num(b[k], label, { min: -lim, max: lim }) : null);
+  if (has('prefLat') || has('prefLng')) {
+    next.pref_lat = coord('prefLat', 'Latitude', 90);
+    next.pref_lng = coord('prefLng', 'Longitude', 180);
+  }
+  if (has('preferredArea') && !(has('prefLat') && next.pref_lat != null)) {
+    // A newly picked area without coordinates takes the area's centre; clearing it clears them.
+    const loc = next.preferred_area ? findLocation(next.preferred_area) : null;
+    if (next.preferred_area !== cur.preferred_area || next.pref_lat == null) {
+      next.pref_lat = loc?.lat ?? null;
+      next.pref_lng = loc?.lng ?? null;
+    }
   }
   db.prepare(
     `UPDATE users SET full_name = ?, phone = ?, address = ?, city = ?, preferred_area = ?, pref_lat = ?, pref_lng = ?,
             upi_id = ?, payment_note = ?, updated_at = datetime('now') WHERE id = ?`,
-  ).run(fullName, phone, address, city, area, lat, lng, upiId, paymentNote, req.user.id);
+  ).run(next.full_name, next.phone, next.address, next.city, next.preferred_area, next.pref_lat, next.pref_lng,
+    next.upi_id, next.payment_note, req.user.id);
   res.json({ profile: profileOf(req.user.id) });
 }));
 
@@ -429,7 +444,8 @@ memberRouter.put('/settings', wrap((req, res) => {
 
 memberRouter.get('/notifications', (req, res) => {
   const rows = db.prepare('SELECT * FROM notifications WHERE user_id = ? ORDER BY id DESC LIMIT 50').all(req.user.id);
-  res.json({ notifications: rows.map((n) => ({ id: n.id, title: n.title, body: n.body, link: n.link, read: Boolean(n.read_at), createdAt: n.created_at })) });
+  const unread = db.prepare('SELECT COUNT(*) AS n FROM notifications WHERE user_id = ? AND read_at IS NULL').get(req.user.id).n;
+  res.json({ notifications: rows.map((n) => ({ id: n.id, title: n.title, body: n.body, link: n.link, read: Boolean(n.read_at), createdAt: n.created_at })), unread });
 });
 
 memberRouter.post('/notifications/read', (req, res) => {

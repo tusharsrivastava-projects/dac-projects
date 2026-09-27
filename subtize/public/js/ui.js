@@ -303,7 +303,14 @@ export function showFieldError(form, err) {
   $$('.is-invalid', form).forEach((n) => n.classList.remove('is-invalid'));
   $$('.field .error[data-auto]', form).forEach((n) => n.remove());
   const name = err?.details?.field;
-  const input = name && form.elements[name];
+  let input = name && form.elements[name];
+  // Most API errors name the field by its human label ("Short description"),
+  // so fall back to the <label> whose text matches.
+  if (!input && name) {
+    const norm = (t) => String(t || '').replace(/[*]|\(optional\)/gi, '').trim().toLowerCase();
+    const label = $$('label', form).find((l) => norm(l.textContent) === norm(name));
+    input = label && (label.htmlFor ? form.querySelector(`#${CSS.escape(label.htmlFor)}`) : label.closest('.field')?.querySelector('input, select, textarea'));
+  }
   const target = input instanceof RadioNodeList ? input[0] : input;
   if (target?.classList) {
     target.classList.add('is-invalid');

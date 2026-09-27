@@ -157,6 +157,13 @@ r = await lister('POST', '/api/lister/checkin', { code: card.verifyUrl, units: 1
 ok('the lister checks the member in by card', r.json?.usage?.used === 1);
 r = await user('GET', `/api/me/subscriptions/${sub.id}`);
 ok('usage shows up for the member', r.json.subscription.usage.used === 1 && r.json.subscription.usage.log.length === 1);
+ok('with a timestamp browsers read correctly', /T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2}$/.test(r.json.subscription.usage.log[0].logged_at), r.json.subscription.usage.log[0].logged_at);
+r = await lister('GET', '/api/lister/checkins');
+ok('the lister sees the visit in their check-in history', r.json.checkins[0]?.id === sub.id && r.json.checkins[0].note === 'Morning session');
+
+r = await user('PUT', '/api/me/profile', { preferredArea: 'Jakhan', upiId: 'tanvi@okaxis' });
+r = await user('PUT', '/api/me/profile', { fullName: 'Tanvi Rawat', phone: '+91 98970 55555' });
+ok('saving part of the profile keeps the rest', r.json.profile.preferredArea === 'Jakhan' && r.json.profile.upiId === 'tanvi@okaxis' && r.json.profile.prefLat != null);
 
 section('7. cancel and exclude');
 r = await user('POST', `/api/me/subscriptions/${sub.id}/exclude`, { cancel: false });

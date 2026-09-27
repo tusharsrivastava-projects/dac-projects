@@ -104,7 +104,8 @@ export function demo() {
   };
   const agreement = (listerId, appId, vid, status, signedAt) => {
     agrN += 1;
-    const signature = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+    // A drawn-looking signature for the demo (the real pad stores a PNG).
+    const signature = `data:image/svg+xml;base64,${Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="360" height="110" viewBox="0 0 360 110"><path d="M18 78c18-40 34-58 44-52 12 8-22 56-8 58 16 2 30-44 44-42 12 2-8 38 6 38 16 0 26-30 40-30 12 0 2 28 14 28 18 0 30-40 48-40 14 0 0 36 14 36 20 0 36-22 56-26M40 92c80-6 170-10 280-8" fill="none" stroke="#0b1f14" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>').toString('base64')}`;
     const listerName = db.prepare('SELECT full_name FROM users WHERE id = ?').get(listerId).full_name;
     db.prepare(
       `INSERT INTO agreements (public_id, lister_id, application_id, verification_id, commission_percent, status,
@@ -274,7 +275,7 @@ export function demo() {
   let cursor = `${T.slice(0, 7)}-01`;
   for (let m = 0; m < 6; m++) { cursor = `${addDays(cursor, -1).slice(0, 7)}-01`; monthList.push(cursor.slice(0, 7)); }
   for (const m of monthList) generateSettlements(m, admin.id);
-  db.prepare("UPDATE settlements SET status = 'paid', reference = 'NEFT' || substr(month, 1, 4) || substr(month, 6, 2) || lister_id, paid_at = month || '-07 12:00:00' WHERE month < ?")
+  db.prepare("UPDATE settlements SET status = 'paid', reference = 'NEFT' || substr(month, 1, 4) || substr(month, 6, 2) || lister_id, paid_at = date(month || '-01', '+1 month', '+6 days') || ' 12:00:00' WHERE month < ?")
     .run(monthList[0]);
   db.prepare("UPDATE settlements SET status = 'processing' WHERE month = ?").run(monthList[0]);
 

@@ -5,7 +5,7 @@ import { config } from '../config.js';
 import { db, logActivity, notify } from '../db/index.js';
 import { AGREEMENT_SELECT, agreementDocument, agreementView } from '../lib/agreement.js';
 import { DAY_NAMES, subscriberCounts } from '../lib/catalog.js';
-import { dayKey, monthBounds, thisMonth, today } from '../lib/dates.js';
+import { dayKey, localToIso, monthBounds, thisMonth, today } from '../lib/dates.js';
 import { findLocation } from '../lib/geo.js';
 import { badRequest, conflict, forbidden, notFound, wrap } from '../lib/http.js';
 import { servicePublicId, slugify } from '../lib/ids.js';
@@ -311,6 +311,23 @@ listerRouter.post('/checkin', wrap((req, res) => {
   logActivity({ actor: req.user, action: 'usage.recorded', entity: 'subscription', entityId: row.public_id, detail: `${units}` });
   res.json({ subscription: subscriberRow(row), usage: { allowed: usage.allowed, used: usage.used, remaining: usage.remaining, unit: usage.unit } });
 }));
+
+/** Recent visits recorded against this lister's services, by anyone. */
+listerRouter.get('/checkins', (req, res) => {
+  const limit = Math.min(100, Number(req.query.limit) || 20);
+  const rows = db.prepare(
+    `SELECT l.units, l.note, l.source, l.logged_at, sub.public_id, sub.usage_unit, s.name AS service, u.full_name
+       FROM usage_logs l JOIN subscriptions sub ON sub.id = l.subscription_id JOIN services s ON s.id = sub.service_id
+       JOIN users u ON u.id = sub.user_id
+      WHERE s.lister_id = ? ORDER BY l.logged_at DESC, l.id DESC LIMIT ?`,
+  ).all(req.user.id, limit);
+  res.json({
+    checkins: rows.map((r) => ({
+      at: localToIso(r.logged_at), subscriber: r.full_name, service: r.service, id: r.public_id,
+      units: r.units, unit: r.usage_unit, note: r.note, source: r.source,
+    })),
+  });
+});
 
 /* ── Money ──────────────────────────────────────────────────────────────── */
 
