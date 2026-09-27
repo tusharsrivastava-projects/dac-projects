@@ -368,6 +368,8 @@ legend { padding: 0 6px; font-weight: 600; color: var(--text-2); font-size: 14px
 .toast.bad .icon { color: var(--red); }
 .toast.info .icon { color: var(--blue); }
 body.has-bottomnav .toasts { bottom: calc(var(--bottomnav-h) + 16px); }
+/* While a dialog is open, toasts move to the top so they never cover its buttons. */
+body:has(.modal-backdrop) .toasts { top: 16px; bottom: auto; }
 
 /* ── Voice ──────────────────────────────────────────────────────────────── */
 .mic-btn { position: relative; }

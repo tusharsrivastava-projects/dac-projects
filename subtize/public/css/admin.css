@@ -269,3 +269,5 @@
 @media (max-width: 480px) { .adm .kv { grid-template-columns: minmax(0, 1fr); gap: 2px; } .adm .kv dd { margin-bottom: 10px; } }
 .adm-top-grid { align-items: start; }
 .adm-top-grid > :only-child { grid-column: 1 / -1; }
+@media (max-width: 480px) { .adm .card-head .btn { white-space: normal; height: auto; min-height: 34px; padding-top: 7px; padding-bottom: 7px; max-width: 100%; } }
+@media (max-width: 720px) { .adm-table .mono { white-space: normal; overflow-wrap: anywhere; } }

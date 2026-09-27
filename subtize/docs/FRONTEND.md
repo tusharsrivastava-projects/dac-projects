@@ -81,12 +81,14 @@ route is handled by the router (it redirects to `/login?next=…`).
 
 ## Running it while you build
 
-Use your own port and throwaway data dir so parallel work never collides:
+Use your own port, data dir and log file so parallel work never collides — and stop your server by
+its PID, never with `pkill -f`, which matches everyone else's too:
 
 ```bash
 cd subtize
 export DATA_DIR=$(mktemp -d) PORT=47XX
-node server/db/seed.js && node server/index.js &
+node server/db/seed.js && node server/index.js > "$DATA_DIR/server.log" 2>&1 &
+echo $! > "$DATA_DIR/server.pid"     # later: kill "$(cat "$DATA_DIR/server.pid")"
 ```
 
 Demo accounts: admin `admin@subtize.ai / subtize-admin-2026` · lister `lister@subtize.ai / lister12345` ·

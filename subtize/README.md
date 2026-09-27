@@ -100,11 +100,13 @@ Out of the box a rule-based parser handles this (`server/lib/assistant.js`) with
 ## Tests
 
 ```bash
-npm test        # boots a throwaway server + demo data and runs test/e2e.mjs
-npm run test:ui # browser walk-through with Playwright (needs Chromium)
+npm test        # API: boots a throwaway server + demo data and runs test/e2e.mjs (104 checks)
+npm run test:ui # browser: Playwright + Chromium, runs test/ui.mjs (56 checks)
 ```
 
-The API suite is 96 checks through every flow above, including the privacy rules: no provider data in any member-facing response, listers locked out of each other's services and the admin API, UTR reuse refused, suspended users signed out on the spot.
+The API suite goes through every flow above, including the privacy rules: no provider data in any member-facing response, listers locked out of each other's services and the admin API, UTR reuse refused, suspended users signed out on the spot.
+
+The browser suite follows one subscription through all three roles in a real Chromium. A new member signs up through the OTP screen, finds a pool with AI search, pays the official QR and submits the UTR. The admin clicks Verify & activate, the member downloads the card as a PNG, and a lister checks a member in. After that it opens every screen at 360px and fails on any console error or sideways scroll.
 
 ## Deploying
 

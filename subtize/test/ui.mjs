@@ -80,8 +80,10 @@ section('2. AI search, checkout, official QR, UTR');
 await member.goto(`${BASE}/app#/search`, { waitUntil: 'networkidle' });
 await member.fill('.ai-box input[name=q]', 'swimming');
 await member.click('.ai-box button[type=submit]');
-await member.waitForSelector('.svc-card', { timeout: 10000 });
-ok('AI search returns service cards', (await member.$$('.svc-card')).length > 0);
+// The page shows suggestions before a search, so wait for the assistant's reply, then for results.
+await member.waitForFunction(() => /Found \d+/.test(document.querySelector('[data-reply]')?.textContent || ''), null, { timeout: 10000 });
+await member.waitForFunction(() => document.querySelectorAll('.svc-card').length > 0 && !document.querySelector('.loading'), null, { timeout: 10000 });
+ok('AI search replies and returns service cards', /swimming/i.test(await member.textContent('[data-reply]')), await member.textContent('[data-reply]'));
 const svc = await (await member.request.get(`${BASE}/api/services?category=swimming&limit=1`)).json();
 const target = svc.services[0];
 await member.goto(`${BASE}/app#/checkout/${target.id}`, { waitUntil: 'networkidle' });
