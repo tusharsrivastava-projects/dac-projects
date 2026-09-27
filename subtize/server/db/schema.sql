@@ -163,6 +163,7 @@ CREATE TABLE IF NOT EXISTS subscriptions (
   cancelled_by   INTEGER REFERENCES users(id) ON DELETE SET NULL,
   cancel_reason  TEXT,
   excluded       INTEGER NOT NULL DEFAULT 0,
+  reminded_at    TEXT,                               -- expiry reminder sent
   created_at     TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at     TEXT NOT NULL DEFAULT (datetime('now'))
 );

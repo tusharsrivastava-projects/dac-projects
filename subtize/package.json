@@ -5,7 +5,7 @@
   "description": "Subtize.ai - discover nearby subscription services, pay through an official QR, and manage or cancel everything from one dashboard.",
   "type": "module",
   "engines": {
-    "node": ">=20.11"
+    "node": ">=20.12"
   },
   "scripts": {
     "start": "node server/index.js",

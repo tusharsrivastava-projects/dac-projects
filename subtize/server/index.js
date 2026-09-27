@@ -2,12 +2,12 @@ import path from 'node:path';
 import express from 'express';
 import cookieParser from 'cookie-parser';
 import { config } from './config.js';
-import { db } from './db/index.js';
+import { db, notifyHooks } from './db/index.js';
 import { bootstrap, isEmpty, KNOWN_DEFAULT_PASSWORDS } from './db/bootstrap.js';
 import { purgeExpiredSessions } from './lib/auth.js';
 import { llmEnabled } from './lib/llm.js';
-import { smtpConfigured } from './lib/mailer.js';
-import { expireDue } from './lib/subscriptions.js';
+import { sendMail, smtpConfigured } from './lib/mailer.js';
+import { expireDue, remindExpiring } from './lib/subscriptions.js';
 import { errorHandler, notFoundHandler } from './middleware/errors.js';
 import { attachUser } from './middleware/session.js';
 import { adminRouter } from './routes/admin.js';
@@ -27,8 +27,9 @@ app.use((_req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('X-Frame-Options', 'DENY');
-  // Voice search needs the microphone; "near me" needs location. Nothing else.
-  res.setHeader('Permissions-Policy', 'microphone=(self), geolocation=(self), camera=()');
+  // Voice search needs the microphone, "near me" needs location, and listers scan
+  // subscription cards with the camera. Nothing else.
+  res.setHeader('Permissions-Policy', 'microphone=(self), geolocation=(self), camera=(self)');
   res.setHeader('Content-Security-Policy', [
     "default-src 'self'",
     "script-src 'self'",
@@ -107,9 +108,19 @@ if (isEmpty() && process.env.AUTO_BOOTSTRAP !== 'false') {
   }
 }
 
-purgeExpiredSessions();
-expireDue();
-setInterval(() => { purgeExpiredSessions(); expireDue(); }, 60 * 60 * 1000).unref();
+// In-app notices to members and listers also go by email, unless they turned
+// that off. Admins work from their queues, so they are not emailed per item.
+notifyHooks.after = (userId, n) => {
+  const u = db.prepare('SELECT email, role, notify_email, status FROM users WHERE id = ?').get(userId);
+  if (!u || u.role === 'admin' || !u.notify_email || u.status !== 'active') return;
+  const link = n.link ? `${config.baseUrl || `http://localhost:${config.port}`}${n.link}` : '';
+  sendMail({ to: u.email, subject: n.title, text: [n.body, link && `Open: ${link}`, '— Subtize.ai'].filter(Boolean).join('\n\n') })
+    .catch(() => {});
+};
+
+const housekeeping = () => { purgeExpiredSessions(); expireDue(); remindExpiring(); };
+housekeeping();
+setInterval(housekeeping, 60 * 60 * 1000).unref();
 
 const server = app.listen(config.port, config.host, () => {
   console.log('\n  Subtize.ai');

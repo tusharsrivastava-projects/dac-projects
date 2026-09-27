@@ -8,7 +8,7 @@ PORT="${TEST_PORT:-4631}"
 TMP="$(mktemp -d)"
 trap 'kill "${SERVER_PID:-0}" 2>/dev/null || true; rm -rf "$TMP"' EXIT
 
-export DATA_DIR="$TMP" PORT NODE_ENV=test
+export DATA_DIR="$TMP" PORT NODE_ENV=test ADMIN_EMAIL=admin@subtize.ai ADMIN_PASSWORD=subtize-admin-2026
 unset SMTP_HOST ANTHROPIC_API_KEY
 node server/db/seed.js > /dev/null
 node server/index.js > "$TMP/server.log" 2>&1 &

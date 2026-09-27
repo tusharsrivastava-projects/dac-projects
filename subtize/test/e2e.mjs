@@ -291,7 +291,16 @@ ok('monthly report downloads as CSV', r.headers.get('content-type').includes('te
 r = await admin('POST', '/api/admin/settlements/generate', {});
 ok('settlements generate for the month', r.json.generated >= 1);
 
-section('11. security edges');
+section('11. reminders and email');
+const priya = client('priya');
+await priya('POST', '/api/auth/login', { email: 'priya@subtize.ai', password: 'demo12345' });
+r = await priya('GET', '/api/me/notifications');
+ok('a plan ending within three days triggers one reminder', r.json.notifications.filter((n) => /Doon Dairy.*ends on/.test(n.title)).length === 1);
+r = await admin('GET', '/api/admin/outbox');
+ok('member notices are also emailed (outbox in dev)', r.json.messages.some((m) => m.to === 'priya@subtize.ai' && /ends on/.test(m.subject)));
+ok('admins are not emailed for queue items', !r.json.messages.some((m) => m.to === 'admin@subtize.ai'));
+
+section('12. security edges');
 r = await guest('GET', '/api/me/overview', null, { allowFail: true });
 ok('member API needs a session', r.status === 401);
 r = await admin('POST', '/api/me/checkout', { serviceId: gym.id }, { allowFail: true });

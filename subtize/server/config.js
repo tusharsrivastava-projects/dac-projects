@@ -1,8 +1,12 @@
+import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 export const ROOT = path.resolve(here, '..');
+
+// A local .env is optional; real deployments set variables in the environment.
+if (fs.existsSync(path.join(ROOT, '.env')) && typeof process.loadEnvFile === 'function') process.loadEnvFile(path.join(ROOT, '.env'));
 
 const int = (v, fallback) => (Number.isFinite(Number(v)) && v !== '' && v != null ? Number(v) : fallback);
 

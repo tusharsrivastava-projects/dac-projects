@@ -297,6 +297,14 @@ disappears because someone tidied up the board.
   is per-process, so a multi-instance deploy gets one bucket per instance —
   fine for one box, worth moving to a shared store if you scale out.
 
+## Also in this repository
+
+[`subtize/`](subtize/) is a separate app: **Subtize.ai**, a platform for nearby
+monthly subscription services with AI and voice search, official-QR payments
+verified by an admin, lister onboarding with an e-signed agreement, and a
+digital subscription card. It has its own `package.json`, database and tests,
+and shares nothing with the HRM platform at runtime. See its README to run it.
+
 ---
 
 DAC — DGU AI Cell · DBS Global University, Dehradun

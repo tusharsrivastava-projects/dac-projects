@@ -36,7 +36,11 @@ export function logActivity({ actor = null, action, entity = null, entityId = nu
     entityId == null ? null : String(entityId), detail);
 }
 
+/** Set once at boot (server/index.js) so notices can also go out by email. */
+export const notifyHooks = { after: null };
+
 export function notify(userId, { title, body = null, link = null }) {
   db.prepare('INSERT INTO notifications (user_id, title, body, link) VALUES (?, ?, ?, ?)')
     .run(userId, title, body, link);
+  notifyHooks.after?.(userId, { title, body, link });
 }

@@ -22,6 +22,26 @@ export function expireDue() {
   return due.length;
 }
 
+/**
+ * One reminder per plan, three days before it ends, to members who have not
+ * turned expiry reminders off. Renewing creates a new plan, so it resets.
+ */
+export function remindExpiring(daysAhead = 3) {
+  const due = db.prepare(
+    `SELECT sub.id, sub.user_id, sub.public_id, sub.end_date, s.name FROM subscriptions sub
+       JOIN services s ON s.id = sub.service_id JOIN users u ON u.id = sub.user_id
+      WHERE sub.status = 'active' AND sub.reminded_at IS NULL AND sub.excluded = 0 AND u.notify_expiry = 1
+        AND sub.end_date BETWEEN ? AND ?
+        AND NOT EXISTS (SELECT 1 FROM subscriptions n WHERE n.user_id = sub.user_id AND n.service_id = sub.service_id
+                         AND n.id <> sub.id AND n.status IN ('active', 'pending_verification', 'verified') AND COALESCE(n.start_date, '9999') > sub.end_date)`,
+  ).all(today(), addDays(today(), daysAhead));
+  for (const s of due) {
+    db.prepare("UPDATE subscriptions SET reminded_at = datetime('now') WHERE id = ?").run(s.id);
+    notify(s.user_id, { title: `${s.name} ends on ${s.end_date}`, body: 'Renew now to keep it going without a gap.', link: `/app#/subscriptions/${s.public_id}` });
+  }
+  return due.length;
+}
+
 /* ── Coupons ────────────────────────────────────────────────────────────── */
 
 /**
