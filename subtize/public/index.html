@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#070a08">
+<meta name="description" content="Avail 100+ subscription-based services for a month. Manage and cancel everything from a single platform.">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icons/icon.svg" type="image/svg+xml">
+<link rel="icon" href="/icons/favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="/css/base.css">
+<title>Subtize.ai · Nearby subscription services in one place</title>
+<link rel="stylesheet" href="/css/public.css">
+</head>
+<body>
+<div id="site-header"></div>
+<main id="main">
+
+  <!-- Hero -->
+  <section class="hero" aria-labelledby="hero-title">
+    <div class="container hero-grid">
+      <div>
+        <div class="hero-brand">
+          <span id="hero-brand"></span>
+          <span class="kicker"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21zM12 12a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z"/></svg>Now live in Dehradun</span>
+        </div>
+        <h1 id="hero-title">Avail 100+ Subscription-Based Services for a Month <span class="accent">— Manage &amp; Cancel Everything from a Single Platform.</span></h1>
+        <p class="lead">Subtize.ai brings the gyms, yoga studios, tiffin kitchens, laundries, car washes, tuition classes and salons near you into one place. Find them by typing or speaking, subscribe month by month, pay once through the official Subtize.ai QR, and track or cancel every plan from one dashboard.</p>
+
+        <div class="hero-search">
+          <div class="label-row"><b><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8z"/></svg>AI Smart Search</b><span>Type or tap the mic</span></div>
+          <div id="hero-search"></div>
+        </div>
+
+        <div class="hero-actions">
+          <a class="btn btn-primary btn-lg" href="/explore" id="cta-explore">Explore Services</a>
+          <a class="btn btn-secondary btn-lg" href="/become-lister">Become a Lister</a>
+          <button type="button" class="btn btn-outline btn-lg" data-action="download-app" id="cta-download">Download App</button>
+          <button type="button" class="btn btn-ghost btn-lg" data-action="share-app" id="cta-share">Share App</button>
+        </div>
+        <div class="hero-trust">
+          <span id="trust-pay"></span>
+          <span id="trust-cancel"></span>
+          <span id="trust-privacy"></span>
+        </div>
+      </div>
+
+      <aside class="hero-preview" aria-label="What your Subtize.ai dashboard looks like">
+        <div class="preview" id="hero-preview"></div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- Live stats -->
+  <section class="stats-strip" aria-label="Subtize.ai today">
+    <div class="container"><div class="stats" id="stats"></div></div>
+  </section>
+
+  <!-- Categories -->
+  <section class="section" aria-labelledby="cat-title">
+    <div class="container">
+      <div class="head-row">
+        <div class="section-head">
+          <div class="eyebrow">Browse by category</div>
+          <h2 id="cat-title">Everything you pay for every month, nearby</h2>
+          <p>Pick a category to see live plans, prices and open days around you.</p>
+        </div>
+        <a class="btn btn-secondary" href="/explore">See all services</a>
+      </div>
+      <div class="cat-grid" id="categories"></div>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section class="section alt" aria-labelledby="feat-title">
+    <div class="container">
+      <div class="section-head">
+        <div class="eyebrow">Key features</div>
+        <h2 id="feat-title">Built for people who hate juggling ten different providers</h2>
+        <p>One account covers discovery, payment, usage and cancellation for every local subscription you hold.</p>
+      </div>
+      <div class="feature-grid" id="features"></div>
+    </div>
+  </section>
+
+  <!-- How it works -->
+  <section class="section" id="how-it-works" aria-labelledby="how-title">
+    <div class="container">
+      <div class="section-head">
+        <div class="eyebrow">How it works</div>
+        <h2 id="how-title">From search to active plan in seven clear steps</h2>
+        <p>You always pay Subtize.ai directly, and a real person checks every payment before your plan starts.</p>
+      </div>
+      <ol class="steps" id="steps"></ol>
+    </div>
+  </section>
+
+  <!-- Popular services -->
+  <section class="section alt" aria-labelledby="pop-title">
+    <div class="container">
+      <div class="head-row">
+        <div class="section-head">
+          <div class="eyebrow">Popular right now</div>
+          <h2 id="pop-title">Most subscribed services this month</h2>
+          <p>See open days, usage limits and how many people are already subscribed before you pay.</p>
+        </div>
+        <a class="btn btn-secondary" href="/explore?sort=popular">View all popular</a>
+      </div>
+      <div id="popular"><div class="loading">Loading services…</div></div>
+    </div>
+  </section>
+
+  <!-- Lister CTA -->
+  <section class="section tight" aria-labelledby="lister-title">
+    <div class="container">
+      <div class="band green">
+        <div>
+          <div class="eyebrow">For service providers</div>
+          <h2 id="lister-title">Run a gym, kitchen, studio or class? List it on Subtize.ai.</h2>
+          <p>Reach members across Dehradun without chasing payments. Subtize.ai collects every subscription, verifies it, and settles 80% of the revenue to you each month.</p>
+          <div class="band-points" id="lister-points"></div>
+        </div>
+        <div class="actions">
+          <a class="btn btn-primary btn-lg" href="/become-lister">Become a Lister</a>
+          <a class="btn btn-secondary btn-lg" href="/become-lister#apply">Apply now</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- App band -->
+  <section class="section tight" aria-labelledby="app-title" style="padding-top:0">
+    <div class="container">
+      <div class="band">
+        <div>
+          <div class="eyebrow">Subtize.ai app</div>
+          <h2 id="app-title">Keep every plan and card on your home screen</h2>
+          <p>Install Subtize.ai straight from your browser. It opens full-screen, shows your digital subscription cards at the counter, and takes a minute to set up with no app store needed. Share it and friends get your referral code.</p>
+        </div>
+        <div class="actions">
+          <button type="button" class="btn btn-primary btn-lg" data-action="download-app" id="band-download">Download App</button>
+          <button type="button" class="btn btn-secondary btn-lg" data-action="share-app" id="band-share">Share App</button>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+<div id="site-footer"></div>
+<script type="module" src="/js/pages/landing.js"></script>
+</body>
+</html>

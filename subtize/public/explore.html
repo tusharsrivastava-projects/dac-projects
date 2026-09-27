@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#070a08">
+<meta name="description" content="Avail 100+ subscription-based services for a month. Manage and cancel everything from a single platform.">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icons/icon.svg" type="image/svg+xml">
+<link rel="icon" href="/icons/favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="/css/base.css">
+<title>Explore services · Subtize.ai</title>
+<link rel="stylesheet" href="/css/public.css">
+</head>
+<body>
+<div id="site-header"></div>
+<main id="main">
+  <section class="explore-head">
+    <div class="container">
+      <div class="eyebrow">Explore services</div>
+      <h1>Find a monthly plan near you</h1>
+      <p class="soft" style="margin:0">Search by typing or speaking, then narrow it down with filters. Every price is per month, and every payment goes to Subtize.ai.</p>
+      <div class="explore-search">
+        <div id="ai-box"></div>
+        <div class="ai-extra" id="ai-extra" hidden></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="container">
+    <div class="explore-layout">
+      <aside class="filters" id="filters" aria-label="Filters">
+        <div class="filters-head">
+          <h2 id="filters-title"></h2>
+          <div class="row" style="--gap:4px">
+            <button type="button" class="btn btn-ghost btn-sm" id="reset-filters">Reset</button>
+            <button type="button" class="btn btn-ghost btn-icon btn-sm filter-close" id="close-filters" aria-label="Close filters"></button>
+          </div>
+        </div>
+        <form class="filters-body" id="filter-form" autocomplete="off"></form>
+        <div class="filters-foot">
+          <button type="button" class="btn btn-secondary" id="reset-filters-2">Reset</button>
+          <button type="button" class="btn btn-primary" id="apply-filters">Show results</button>
+        </div>
+      </aside>
+      <div class="filters-scrim" id="filters-scrim"></div>
+
+      <section aria-labelledby="results-count" style="min-width:0">
+        <div class="results-bar">
+          <div class="count" id="results-count" aria-live="polite">Loading…</div>
+          <div class="tools">
+            <button type="button" class="btn btn-secondary btn-sm filter-toggle" id="open-filters" aria-controls="filters" aria-expanded="false"></button>
+            <label class="sr-only" for="sort-top">Sort by</label>
+            <select class="select" id="sort-top"></select>
+          </div>
+        </div>
+        <div class="chips active-chips" id="active-chips"></div>
+        <div id="results"><div class="loading">Loading services…</div></div>
+        <div class="load-more" id="load-more" hidden><button type="button" class="btn btn-secondary" id="load-more-btn">Load more</button></div>
+      </section>
+    </div>
+  </div>
+</main>
+<div id="site-footer"></div>
+<script type="module" src="/js/pages/explore.js"></script>
+</body>
+</html>
