@@ -50,11 +50,9 @@ export async function renderListers({ view, query }) {
       { label: `Gross ${month}`, cls: 'right', render: (l) => money(l.monthGross) },
       { label: `Payable ${month}`, cls: 'right', render: (l) => `<b>${money(l.monthPayable)}</b>` },
       {
-        label: 'Actions',
+        label: '',
         cls: 'nowrap',
         render: (l) => `<div class="row adm-actions">
-          <a class="btn btn-ghost btn-sm" href="#/users/${l.id}">User</a>
-          ${appFor.get(l.id) ? `<a class="btn btn-ghost btn-sm" href="#/applications/${appFor.get(l.id).id}">Application</a>` : ''}
           ${!l.agreementStatus || l.agreementStatus === 'terminated' ? `<button type="button" class="btn btn-outline btn-sm" data-issue="${l.id}">${icon('signature', 'sm')} Issue agreement</button>` : ''}
         </div>`,
       },

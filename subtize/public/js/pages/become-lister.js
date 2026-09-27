@@ -98,7 +98,7 @@ function appForm({ mode = 'new', app = null, prefill = {} } = {}) {
   const commission = meta.platform?.commissionPercent ?? 20;
   const payout = 100 - commission;
   return `
-  <form class="apply-card" id="app-form" novalidate>
+  <form class="${edit ? 'edit-form' : 'apply-card'}" id="app-form" novalidate>
     ${edit ? `<div class="panel-note warn mb-24">${icon('edit')}<div><strong>Update only what needs fixing.</strong> Fields you leave unchanged, and blank sensitive fields, keep their current values. Upload a corrected document if you were asked for one.</div></div>` : ''}
     ${section(1, 'Applicant', 'The person responsible for this business on Subtize.ai.', `
       ${input('applicantName', 'Full name', { req, value: v('applicantName'), attrs: 'autocomplete="name" maxlength="120"' })}
@@ -289,17 +289,16 @@ const TRACK = [['applied', 'Applied'], ['under_review', 'Under review'], ['verif
 
 function tracker(status) {
   const pos = { applied: 0, under_review: 1, verification_required: 2, approved: 3, rejected: 3, suspended: 3 }[status] ?? 0;
-  return `<ol class="tracker" aria-label="Application progress">${TRACK.map(([k, label], i) => {
+  const terminal = status === 'rejected' || status === 'suspended';
+  return `<ol class="tracker" aria-label="Application progress">${TRACK.map(([, label], i) => {
     let cls = '';
     let dot = String(i + 1);
     let sub = '';
     let text = label;
-    if (i === 3 && (status === 'rejected' || status === 'suspended')) { cls = 'bad'; dot = icon('close'); text = status === 'rejected' ? 'Rejected' : 'Suspended'; }
-    else if (i < pos || (i === pos && status === 'approved')) {
-      if (i === 2 && status !== 'verification_required' && !['approved'].includes(status) && k === 'verification_required') { cls = ''; sub = 'If needed'; }
-      else { cls = 'done'; dot = icon('check'); }
-    } else if (i === pos) { cls = status === 'verification_required' ? 'current warn' : 'current'; sub = 'Current step'; }
-    else if (i === 2) sub = 'Only if needed';
+    if (i === 3 && terminal) { cls = 'bad'; dot = icon('close'); text = status === 'rejected' ? 'Rejected' : 'Suspended'; }
+    else if (i === 2 && status !== 'verification_required') { sub = 'Only if needed'; if (i < pos) { cls = 'skip'; dot = icon('minus'); } }
+    else if (i < pos || status === 'approved') { cls = 'done'; dot = icon('check'); }
+    else if (i === pos) { cls = status === 'verification_required' ? 'current warn' : 'current'; sub = 'Current step'; }
     return `<li class="${cls}" ${i === pos ? 'aria-current="step"' : ''}><div class="dot">${dot}</div><div><b>${esc(text)}</b>${sub ? `<small>${sub}</small>` : ''}</div></li>`;
   }).join('')}</ol>`;
 }

@@ -4,14 +4,6 @@
    ─────────────────────────────────────────────────────────────────────── */
 
 main { display: block; }
-/* Shared header is ~10px too wide at 360–400px (base.css); tighten it on public pages. */
-@media (max-width: 420px) {
-  .site-header .container { gap: 10px; padding: 0 14px; }
-  .site-actions { gap: 4px; }
-  .site-actions .btn-sm { padding: 0 10px; }
-  .site-header .brand { font-size: 18px; }
-  .site-header .brand .mark { width: 30px; height: 30px; }
-}
 .page { padding: 36px 0 24px; }
 .lead { font-size: 17px; color: var(--text-2); line-height: 1.6; }
 .kicker { display: inline-flex; align-items: center; gap: 8px; height: 30px; padding: 0 12px; border-radius: 999px; background: var(--green-soft); border: 1px solid var(--green-line); color: var(--green); font-size: 13px; font-weight: 600; }
@@ -325,7 +317,7 @@ main { display: block; }
 .info-cards .card p { margin: 0; font-size: 14px; }
 .toc { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 8px; }
 @media (max-width: 900px) {
-  .info-layout { grid-template-columns: 1fr; gap: 20px; padding-top: 20px; }
+  .info-layout { grid-template-columns: minmax(0, 1fr); gap: 20px; padding-top: 20px; }
   .info-nav { position: static; flex-direction: row; overflow-x: auto; scrollbar-width: none; gap: 6px; margin: 0 -20px; padding: 0 20px 4px; }
   .info-nav::-webkit-scrollbar { display: none; }
   .info-nav .eyebrow { display: none; }
@@ -385,12 +377,17 @@ main { display: block; }
 
 .apply-card { background: var(--surface); border: 1px solid var(--line-2); border-radius: var(--radius-xl); padding: 28px; }
 @media (max-width: 560px) { .apply-card { padding: 18px 16px; border-radius: var(--radius-lg); } }
-.form-section { border: 0; padding: 0; margin: 0; }
+.form-section { border: 0; border-radius: 0; padding: 0; margin: 0; min-width: 0; }
 .form-section + .form-section { margin-top: 28px; padding-top: 24px; border-top: 1px solid var(--line); }
-.form-section legend { display: flex; align-items: center; gap: 10px; padding: 0; margin-bottom: 4px; font-size: 17px; font-weight: 700; color: var(--text); }
+.form-section legend { float: left; width: 100%; display: flex; align-items: center; gap: 10px; padding: 0; margin-bottom: 4px; font-size: 17px; font-weight: 700; color: var(--text); }
 .form-section legend .n { width: 28px; height: 28px; border-radius: 8px; display: inline-grid; place-items: center; background: var(--green-soft); color: var(--green); font-size: 13px; font-weight: 800; }
+.form-section legend + * { clear: both; }
+.form-section .form-grid { clear: both; }
+.edit-form { border-top: 1px solid var(--line); padding-top: 24px; }
 .form-section .section-note { font-size: 13.5px; color: var(--muted); margin: 0 0 16px; }
-.file-field .dropzone { display: flex; align-items: center; gap: 12px; text-align: left; padding: 14px 16px; }
+.file-field .dropzone input { display: block; position: absolute; width: 1px; height: 1px; opacity: 0; }
+.file-field .dropzone:focus-within { border-color: var(--green); box-shadow: 0 0 0 3px var(--green-soft); }
+.file-field .dropzone { position: relative; display: flex; align-items: center; gap: 12px; text-align: left; padding: 14px 16px; }
 .file-field .dropzone .icon-tile { width: 38px; height: 38px; }
 .file-field .dropzone b { display: block; color: var(--text); font-size: 14px; }
 .file-field .dropzone small { color: var(--muted); }
@@ -411,16 +408,23 @@ main { display: block; }
 .tracker li.done::before, .tracker li.current::before { background: var(--green); }
 .tracker li.current .dot { border-color: var(--green); color: var(--green); background: var(--green-soft); }
 .tracker li.current b, .tracker li.done b { color: var(--text); }
+.tracker li.skip::before { background: var(--green); }
+.tracker li.skip .dot { border-style: dashed; }
 .tracker li.warn .dot { border-color: var(--amber); color: var(--amber); background: var(--amber-soft); }
 .tracker li.bad .dot { border-color: var(--red); color: var(--red); background: var(--red-soft); }
 @media (max-width: 600px) {
-  .tracker { grid-template-columns: 1fr; gap: 0; }
-  .tracker li { display: grid; grid-template-columns: 36px minmax(0, 1fr); gap: 0 12px; text-align: left; padding: 0 0 18px; }
-  .tracker li::before { top: auto; bottom: 100%; left: 17px; right: auto; width: 2px; height: 18px; }
-  .tracker li:first-child::before { display: none; }
-  .tracker .dot { margin: 0; grid-row: span 2; }
-  .tracker li::before { transform: translateY(18px); bottom: calc(100% - 0px); }
+  .tracker { grid-template-columns: 1fr; }
+  .tracker li { display: grid; grid-template-columns: 36px minmax(0, 1fr); gap: 0 12px; text-align: left; padding: 0 0 18px; align-items: start; }
+  .tracker li::before { display: none; }
+  .tracker li:not(:last-child)::after { content: ''; position: absolute; left: 17px; top: 40px; bottom: 4px; width: 2px; background: var(--line-2); }
+  .tracker li.done:not(:last-child)::after, .tracker li.skip:not(:last-child)::after { background: var(--green); }
+  .tracker .dot { margin: 0; }
+  .tracker li > div:last-child { padding-top: 7px; }
 }
 .doc-links { display: flex; flex-wrap: wrap; gap: 8px; }
 [id] { scroll-margin-top: 88px; }
 @media (max-width: 420px) { .verdict { padding: 22px 16px; } .verdict .word { font-size: 32px; overflow-wrap: anywhere; } .holder { font-size: 22px; } }
+.feature-grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 900px) { .feature-grid.three { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 520px) { .feature-grid.three { grid-template-columns: 1fr; } }
+@media (max-width: 560px) { .prose .table th, .prose .table td { padding: 10px; font-size: 13.5px; } .prose .table th { white-space: normal; } }

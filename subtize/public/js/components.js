@@ -36,7 +36,8 @@ export function serviceCard(s, { href = `/services/${s.slug}`, cta = 'Subscribe'
       <div class="svc-foot">
         <div class="price">${inr(s.monthlyPrice)}<small> /month</small></div>
         ${mine ? `<a class="btn btn-secondary btn-sm" href="${esc(href)}">View</a>`
-          : `<a class="btn btn-primary btn-sm" href="${esc(ctaHref || href)}" ${full ? 'aria-disabled="true"' : ''}>${full ? 'Full' : esc(cta)}</a>`}
+          : full ? '<button type="button" class="btn btn-secondary btn-sm" disabled>Full</button>'
+            : `<a class="btn btn-primary btn-sm" href="${esc(ctaHref || href)}">${esc(cta)}</a>`}
       </div>
     </div>
   </article>`;

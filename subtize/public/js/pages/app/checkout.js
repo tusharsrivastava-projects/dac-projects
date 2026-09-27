@@ -376,9 +376,9 @@ function statusScreen(view, p) {
 
   const page = mountPage(view, `
     ${stepper(Math.min(S.step, 7))}
-    <section class="card result-card mt-24 tone-${S.tone}">
+    <section class="card result-card mt-24 result-${S.tone}">
       <div class="result-ic">${icon(S.ic)}</div>
-      <div class="eyebrow">${pill(p.status)}</div>
+      <div class="result-pill">${pill(p.status)}</div>
       <h1 class="mt-8">${esc(S.title)}</h1>
       <p class="soft result-text">${esc(S.text)}</p>
       <dl class="kv result-kv">

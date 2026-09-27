@@ -100,7 +100,8 @@ export async function renderPayments({ view, query }) {
         : emptyState({ ic: 'checkCircle', title: q ? 'No pending payment matches' : 'All caught up', text: q ? 'Try a different search.' : 'There are no payments waiting for verification.' });
       return;
     }
-    listEl.innerHTML = table(columns(tab), rows, {
+    const actionable = rows.some((p) => p.status === 'pending' || p.status === 'awaiting_payment' || p.activation === 'awaiting_activation');
+    listEl.innerHTML = table(columns(tab).filter((c) => actionable || c.label !== 'Actions'), rows, {
       rowAttrs: (p) => `data-id="${esc(p.id)}"`,
       empty: emptyState({ ic: 'receipt', title: 'No payments here', text: q ? 'Nothing matches that search.' : 'Payments appear here as members check out.' }),
     });
@@ -187,7 +188,7 @@ function queueCard(p) {
 
 function columns(tab) {
   return [
-    { label: 'Payment', render: (p) => `<div class="mono small">${esc(p.id)}</div><div class="cell-sub nowrap">${esc(fmtDateTime(p.submittedAt || p.createdAt))}</div>` },
+    { label: 'Payment', render: (p) => `<div class="mono small">${esc(p.id)}</div><div class="cell-sub">${esc(fmtDateTime(p.submittedAt || p.createdAt))}</div>` },
     { label: 'Member', cls: 'mid', render: (p) => `<a class="cell-title" href="#/users/${p.user.id}">${esc(p.user.name)}</a><div class="cell-sub adm-ellipsis" title="${esc(p.user.email)}">${esc(p.user.email)}</div>` },
     { label: 'Service', cls: 'wide', render: (p) => `<a href="#/services/${p.service.id}">${esc(p.service.name)}</a><div class="cell-sub">${esc(planLabel(p.subscription.months))} · <a class="mono" href="#/subscriptions/${esc(p.subscription.id)}">${esc(p.subscription.id)}</a></div>` },
     {
@@ -195,25 +196,25 @@ function columns(tab) {
       cls: 'right',
       render: (p) => `<b>${money(p.finalAmount)}</b>${p.couponCode ? `<div class="cell-sub"><s class="num">${esc(inr(p.amount))}</s> · <span class="mono">${esc(p.couponCode)}</span> −${esc(inr(p.discount))}</div>` : '<div class="cell-sub">no coupon</div>'}`,
     },
-    { label: 'UPI transaction ID', render: (p) => `${p.upiTxnId ? `<span class="row adm-utr-sm">${mono(p.upiTxnId)}${copyBtn(p.upiTxnId, 'Copy UTR')}</span>` : '<span class="muted small">Not submitted</span>'}<div class="cell-sub">to <span class="mono">${esc(p.payeeVpa || '—')}</span></div>` },
+    { label: 'UTR / payee VPA', render: (p) => `${p.upiTxnId ? `<span class="row adm-utr-sm">${mono(p.upiTxnId)}${copyBtn(p.upiTxnId, 'Copy UTR')}</span>` : '<span class="muted small">Not submitted</span>'}<div class="cell-sub mono" title="Payee VPA of the QR used">${esc(p.payeeVpa || '—')}</div>` },
     {
       label: 'Status',
       render: (p) => `<div class="adm-pills">${pill(p.status)}${p.status !== 'awaiting_payment' && p.status !== 'rejected' ? activationPill(p.activation) : ''}</div>
         ${p.rejectionReason ? `<div class="cell-sub adm-clamp" title="${esc(p.rejectionReason)}">${esc(p.rejectionReason)}</div>` : ''}
-        ${p.verifiedBy ? `<div class="cell-sub nowrap">by ${esc(p.verifiedBy)} · ${esc(fmtDateTime(p.verifiedAt))}</div>` : ''}`,
+        ${p.verifiedBy ? `<div class="cell-sub mt-8">by ${esc(p.verifiedBy)}<br>${esc(fmtDateTime(p.verifiedAt))}</div>` : ''}`,
     },
     {
       label: 'Actions',
       cls: 'nowrap',
       render: (p) => {
         if (p.status === 'pending') {
-          return `<div class="row adm-actions"><button type="button" class="btn btn-primary btn-sm" data-act="verify">Verify &amp; activate</button>
+          return `<div class="adm-actions-col"><button type="button" class="btn btn-primary btn-sm" data-act="verify">Verify &amp; activate</button>
             <button type="button" class="btn btn-secondary btn-sm" data-act="verify-only">Verify only</button>
             <button type="button" class="btn btn-danger-outline btn-sm" data-act="reject">Reject</button></div>`;
         }
         if (p.activation === 'awaiting_activation') return `<button type="button" class="btn btn-primary btn-sm" data-act="activate">${icon('play', 'sm')} Activate</button>`;
         if (p.status === 'awaiting_payment') return `<button type="button" class="btn btn-danger-outline btn-sm" data-act="reject" title="Close this unpaid checkout">Reject</button>`;
-        return `<a class="btn btn-ghost btn-sm" href="#/subscriptions/${esc(p.subscription.id)}">View</a>`;
+        return '';
       },
     },
   ];

@@ -450,6 +450,13 @@ body.has-bottomnav .toasts { bottom: calc(var(--bottomnav-h) + 16px); }
   .site-menu-toggle { display: inline-flex; }
   .site-actions .hide-sm { display: none; }
 }
+@media (max-width: 420px) {
+  .site-header .container { gap: 10px; padding: 0 14px; }
+  .site-actions { gap: 4px; }
+  .site-actions .btn-sm { padding: 0 10px; }
+  .site-header .brand { font-size: 18px; }
+  .site-header .brand .mark { width: 30px; height: 30px; }
+}
 .site-footer { border-top: 1px solid var(--line); background: var(--surface); margin-top: 80px; }
 .site-footer .footer-grid { display: grid; grid-template-columns: 1.4fr repeat(3, 1fr); gap: 32px; padding: 48px 0 28px; }
 .site-footer h4 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }

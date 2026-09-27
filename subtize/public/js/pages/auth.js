@@ -95,8 +95,8 @@ card.addEventListener('click', (e) => {
 });
 
 const devNote = (code) => (code ? `
-  <div class="dev-note" role="note">${icon('info')}<span class="tag">Dev mode</span>
-    <span>No email configured. Your code is <code>${esc(code)}</code></span>
+  <div class="dev-note" role="note">${icon('info')}
+    <span><strong>Dev mode</strong> — no email configured. Your code is <code>${esc(code)}</code></span>
     <button type="button" class="btn btn-secondary btn-sm" data-fill="${esc(code)}">Fill it in</button>
   </div>` : '');
 

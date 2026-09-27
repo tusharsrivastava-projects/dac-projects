@@ -44,16 +44,17 @@ export async function renderCoupons({ view }) {
       ${statTile({ label: 'Private codes', value: String(coupons.filter((c) => !c.public).length), ic: 'lock', sub: 'not advertised to members' })}
     </div>
     <div class="mt-16">${table([
-      { label: 'Code', render: (c) => `<span class="adm-code">${esc(c.code)}</span>${c.description ? `<div class="cell-sub adm-clamp" title="${esc(c.description)}">${esc(c.description)}</div>` : ''}` },
-      { label: 'Applies to', render: (c) => (c.serviceId ? `<a href="#/services/${c.serviceId}">${esc(c.service || `Service #${c.serviceId}`)}</a>` : '<span class="tag">All services</span>') },
-      { label: 'Discount', render: (c) => `<b>${esc(discountLabel(c))}</b>` },
-      { label: 'Max discount', cls: 'right', render: (c) => (c.maxDiscount != null ? esc(inr(c.maxDiscount)) : dash) },
-      { label: 'Min value', cls: 'right', render: (c) => (c.minValue ? esc(inr(c.minValue)) : dash) },
-      { label: 'Start', render: (c) => `<span class="nowrap">${esc(fmtDate(c.startsOn))}</span>` },
-      { label: 'Expiry', render: (c) => `<span class="nowrap">${esc(fmtDate(c.expiresOn))}</span>` },
-      { label: 'Used / limit', cls: 'right', render: (c) => `<span class="num">${c.used}</span><span class="muted"> / ${c.usageLimit ?? '∞'}</span>` },
-      { label: 'Per user', cls: 'right', render: (c) => `<span class="num">${c.perUserLimit}</span>` },
-      { label: 'Visibility', render: (c) => (c.public ? tonePill('Public', 'info') : tonePill('Private', 'neutral')) },
+      { label: 'Code', cls: 'mid', render: (c) => `<span class="adm-code">${esc(c.code)}</span>${c.description ? `<div class="cell-sub adm-clamp" title="${esc(c.description)}">${esc(c.description)}</div>` : ''}` },
+      { label: 'Applies to', cls: 'mid', render: (c) => (c.serviceId ? `<a href="#/services/${c.serviceId}">${esc(c.service || `Service #${c.serviceId}`)}</a>` : '<span class="tag">All services</span>') },
+      {
+        label: 'Discount',
+        render: (c) => `<b class="nowrap">${esc(discountLabel(c))}</b>
+          ${c.maxDiscount != null ? `<div class="cell-sub nowrap">max ${esc(inr(c.maxDiscount))}</div>` : ''}
+          ${c.minValue ? `<div class="cell-sub nowrap">min order ${esc(inr(c.minValue))}</div>` : ''}`,
+      },
+      { label: 'Valid', render: (c) => `<span class="nowrap">${esc(fmtDate(c.startsOn))}</span><div class="cell-sub nowrap">to ${esc(fmtDate(c.expiresOn))}</div>` },
+      { label: 'Used / limit', cls: 'right', render: (c) => `<span class="num">${c.used}</span><span class="muted"> / ${c.usageLimit ?? '∞'}</span><div class="cell-sub nowrap">${c.perUserLimit} per member</div>` },
+      { label: 'Visibility', render: (c) => `<div class="adm-pills">${c.public ? tonePill('Public', 'info') : tonePill('Private', 'neutral')}</div>` },
       { label: 'Active', render: (c) => `<label class="switch" title="${c.active ? 'Switch off' : 'Switch on'}"><input type="checkbox" data-toggle ${c.active ? 'checked' : ''} aria-label="Coupon ${esc(c.code)} active"><span></span></label>` },
       { label: 'State', render: livePill },
       {
@@ -79,7 +80,7 @@ export async function renderCoupons({ view }) {
       const res = await api.post(`/api/admin/coupons/${c.id}/toggle`);
       Object.assign(c, res.coupon);
       toast(`${c.code} is now ${c.active ? 'on' : 'off'}.`);
-      const cell = input.closest('tr').querySelector('td[data-label="State"]');
+      const cell = input.closest('tr').querySelector('td[data-label="State"] .adm-cell');
       if (cell) cell.innerHTML = livePill(c);
     } catch (err) { input.checked = !input.checked; toast(err.message, 'bad'); } finally { input.disabled = false; }
   });

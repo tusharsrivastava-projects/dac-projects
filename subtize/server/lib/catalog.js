@@ -24,6 +24,16 @@ export function seatsTaken(serviceId) {
   ).get(serviceId, today()).n;
 }
 
+/** Seats taken for every capped service at once, for list views. */
+export function seatsTakenAll() {
+  const rows = db.prepare(
+    `SELECT sub.service_id, COUNT(*) AS n FROM subscriptions sub JOIN services s ON s.id = sub.service_id
+      WHERE s.max_subscribers IS NOT NULL AND ((sub.status = 'active' AND sub.end_date >= ?) OR sub.status IN ('pending_verification', 'verified'))
+      GROUP BY sub.service_id`,
+  ).all(today());
+  return new Map(rows.map((r) => [r.service_id, r.n]));
+}
+
 /** Coupons someone could actually use today, grouped by service (null key = all services). */
 export function liveCoupons({ publicOnly = true } = {}) {
   const rows = db.prepare(
@@ -74,7 +84,7 @@ export function publicService(row, ctx = {}) {
   const best = offers.filter((c) => saving(c) > 0).sort((a, b) => saving(b) - saving(a))[0];
   const dist = ctx.origin ? distanceKm(ctx.origin, row) : null;
   const todayKey = dayKey(today());
-  const taken = ctx.withCapacity ? seatsTaken(row.id) : null;
+  const taken = row.max_subscribers == null ? null : ctx.withCapacity ? seatsTaken(row.id) : (ctx.seats?.get(row.id) ?? 0);
 
   return {
     id: row.id,
@@ -128,7 +138,7 @@ export function serviceRow(idOrSlug) {
 
 /** Everything a viewer-specific projection needs, gathered once per request. */
 export function viewerContext(user, { origin = null } = {}) {
-  const ctx = { counts: subscriberCounts(), coupons: liveCoupons(), origin, mine: new Map(), excluded: new Set() };
+  const ctx = { counts: subscriberCounts(), seats: seatsTakenAll(), coupons: liveCoupons(), origin, mine: new Map(), excluded: new Set() };
   if (user) {
     const subs = db.prepare(
       `SELECT service_id, status, public_id, end_date FROM subscriptions

@@ -24,23 +24,28 @@ function usageCell(s) {
     <div class="meter ${pct >= 100 ? 'bad' : pct >= 80 ? 'warn' : ''}"><span style="width:${pct}%"></span></div></div>`;
 }
 
+const dateCell = (d) => {
+  if (!d) return '—';
+  const [a, b] = fmtDate(d).split(/ (?=\d{4}$)/);
+  return `<span class="nowrap">${esc(a)}</span> <span class="muted">${esc(b || '')}</span>`;
+};
+
 function row(s) {
   const p = s.payment;
   return `<tr>
     <td data-label="Service"><a class="cell-title" href="#/subscriptions/${esc(s.id)}">${esc(s.service.name)}</a><div class="cell-sub">${subPill(s)}</div></td>
-    <td data-label="Start date" class="nowrap">${fmtDate(s.startDate)}</td>
-    <td data-label="Expiry date" class="nowrap">${fmtDate(s.endDate)}</td>
+    <td data-label="Start date">${dateCell(s.startDate)}</td>
+    <td data-label="Expiry date">${dateCell(s.endDate)}</td>
     <td data-label="Amount paid" class="num nowrap">${p ? inr(p.finalAmount) : '—'}</td>
     <td data-label="Discount" class="num nowrap">${p?.discount ? `${inr(p.discount)}${p.couponCode ? `<div class="cell-sub mono">${esc(p.couponCode)}</div>` : ''}` : '—'}</td>
-    <td data-label="Payment">${p ? pill(p.status) : '—'}</td>
+    <td data-label="Payment">${p ? pill(p.status, p.status === 'pending' ? 'Pending' : p.status === 'awaiting_payment' ? 'Unpaid' : null) : '—'}</td>
     <td data-label="Activation" class="small">${esc(activationLabel(s))}</td>
     <td data-label="Usage">${usageCell(s)}</td>
-    <td data-label="Available days">${dayStrip(s.service.availableDays)}</td>
     <td data-label="Remaining" class="num nowrap">${s.status === 'active' ? `${s.remainingDays} d` : '—'}</td>
-    <td data-label="Today">${s.service.status === 'active' ? openTodayPill(s.service.availableDays) : pill('inactive', 'Unavailable')}</td>
+    <td data-label="Available days">${dayStrip(s.service.availableDays)}<div class="mt-8">${s.service.status === 'active' ? openTodayPill(s.service.availableDays) : pill('inactive', 'Unavailable')}</div></td>
     <td data-label="Actions" class="actions-cell">
       <div class="row" style="--gap:6px">
-        <a class="btn btn-ghost btn-sm" href="#/subscriptions/${esc(s.id)}" title="View">${icon('eye', 'sm')}<span class="lbl">View</span></a>
+        <a class="btn btn-ghost btn-sm" href="#/subscriptions/${esc(s.id)}" title="View" aria-label="View">${icon('eye', 'sm')}<span class="lbl">View</span></a>
         ${canRenew(s) ? `<a class="btn btn-ghost btn-sm" href="#/checkout/${s.service.id}" title="Renew">${icon('refresh', 'sm')}<span class="lbl">Renew</span></a>` : ''}
         ${!isEnded(s) ? `<button type="button" class="btn btn-ghost btn-sm danger-text" data-act="cancel" data-id="${esc(s.id)}" title="Cancel">${icon('x', 'sm')}<span class="lbl">Cancel</span></button>` : ''}
         ${!s.excluded ? `<button type="button" class="btn btn-ghost btn-sm" data-act="exclude" data-id="${esc(s.id)}" title="Exclude from Subtize.ai">${icon('ban', 'sm')}<span class="lbl">Exclude</span></button>` : ''}
@@ -71,7 +76,7 @@ export async function renderManage({ view, query, isCurrent }) {
       .filter((s) => !needle || s.service.name.toLowerCase().includes(needle) || s.id.toLowerCase().includes(needle));
     host.innerHTML = list.length ? `
       <div class="table-wrap"><table class="table rtable manage-table">
-        <thead><tr><th>Service</th><th>Start</th><th>Expiry</th><th>Amount paid</th><th>Discount</th><th>Payment</th><th>Activation</th><th>Usage</th><th>Available days</th><th>Remaining</th><th>Today</th><th><span class="sr-only">Actions</span></th></tr></thead>
+        <thead><tr><th>Service</th><th>Start</th><th>Expiry</th><th>Amount</th><th>Discount</th><th>Payment</th><th>Activation</th><th>Usage</th><th>Days left</th><th>Availability · today</th><th><span class="sr-only">Actions</span></th></tr></thead>
         <tbody>${list.map(row).join('')}</tbody></table></div>`
       : emptyState({ ic: 'layers', title: needle ? 'No matches' : 'Nothing here', text: needle ? 'No subscription matches that name.' : 'No subscriptions in this view.', action: '<a class="btn btn-primary" href="#/explore">Explore services</a>' });
   };

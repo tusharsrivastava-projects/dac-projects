@@ -58,7 +58,7 @@ function subRow(s) {
     <div class="sub-facts">
       <div><div class="label">Remaining</div><div class="v">${s.status === 'active' ? `${s.remainingDays} day${s.remainingDays === 1 ? '' : 's'}` : '—'}</div></div>
       <div><div class="label">Payment</div><div class="v">${pay ? pill(pay.status) : '—'}</div></div>
-      <div><div class="label">Paid</div><div class="v num">${pay ? inr(pay.finalAmount) : '—'}</div></div>
+      <div><div class="label">${pay?.status === 'verified' ? 'Paid' : 'Amount'}</div><div class="v num">${pay ? inr(pay.finalAmount) : '—'}</div></div>
     </div>
     ${s.usage || s.status === 'active' ? `<div class="sub-usage">${s.usage ? `<div>${usageMeter(s.usage)}</div>` : ''}${s.status === 'active' ? `<div>${periodMeter(s)}</div>` : ''}</div>` : ''}
     ${s.status === 'pending_verification' ? `<div class="panel-note warn small">${icon('clock')}<div>Payment submitted${pay?.upiTxnId ? ` (UTR <span class="mono">${esc(pay.upiTxnId)}</span>)` : ''}. An admin will verify and activate it.</div></div>` : ''}

@@ -99,7 +99,7 @@ export async function renderService({ view, params, isCurrent }) {
 
   $('[data-sub]', page)?.addEventListener('click', () => {
     const m = $('input[name=plan]:checked', page)?.value || s.plans[0];
-    go(`/checkout/${s.id}?months=${m}${s.offerCode ? `&coupon=${encodeURIComponent(s.offerCode)}` : ''}`);
+    go(`/checkout/${s.id}?months=${m}`);
   });
   $('[data-exclude]', page).addEventListener('click', async () => {
     if (await excludeService(s)) go('/explore');

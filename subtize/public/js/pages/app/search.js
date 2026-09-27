@@ -58,9 +58,11 @@ export async function renderSearch({ view, query, isCurrent }) {
             <div>${serviceCard(s, { href: `#/services/${s.id}`, ctaHref: `#/checkout/${s.id}` })}</div>
             <div class="stack">
               <div><div class="label mb-8">Open on</div>${dayStrip(s.availableDays, { size: 'lg' })}</div>
-              ${s.hours ? `<div class="kv"><dt>Hours</dt><dd>${esc(s.hours)}</dd></div>` : ''}
-              <div class="kv"><dt>Price</dt><dd>${inr(s.monthlyPrice)} / month</dd></div>
-              ${s.spotsLeft != null ? `<div class="kv"><dt>Spots left</dt><dd>${s.spotsLeft}</dd></div>` : ''}
+              <dl class="kv">
+                ${s.hours ? `<dt>Hours</dt><dd>${esc(s.hours)}</dd>` : ''}
+                <dt>Price</dt><dd>${inr(s.monthlyPrice)} / month</dd>
+                ${s.spotsLeft != null ? `<dt>Spots left</dt><dd>${s.spotsLeft}</dd>` : ''}
+              </dl>
               <div class="row wrap"><a class="btn btn-primary" href="#/checkout/${s.id}">Subscribe</a><a class="btn btn-secondary" href="#/services/${s.id}">Full details</a></div>
             </div>
           </div>` : ''}

@@ -107,7 +107,7 @@ export function table(cols, rows, { empty = null, rowAttrs = null, cls = '' } = 
   }
   return `<div class="table-wrap adm-table-wrap"><table class="table adm-table ${cls}">
     <thead><tr>${cols.map((c) => `<th class="${c.cls || ''}" scope="col">${esc(c.label)}</th>`).join('')}</tr></thead>
-    <tbody>${rows.map((r) => `<tr ${rowAttrs ? rowAttrs(r) : ''}>${cols.map((c) => `<td class="${c.cls || ''}" data-label="${esc(c.label)}">${c.render(r)}</td>`).join('')}</tr>`).join('')}</tbody>
+    <tbody>${rows.map((r) => `<tr ${rowAttrs ? rowAttrs(r) : ''}>${cols.map((c) => `<td class="${c.cls || ''}" data-label="${esc(c.label)}"><div class="adm-cell">${c.render(r)}</div></td>`).join('')}</tr>`).join('')}</tbody>
   </table></div>`;
 }
 

@@ -13,6 +13,20 @@ db.pragma('foreign_keys = ON');
 const schemaPath = path.join(path.dirname(fileURLToPath(import.meta.url)), 'schema.sql');
 db.exec(fs.readFileSync(schemaPath, 'utf8'));
 
+/**
+ * Columns added after the first release. CREATE TABLE IF NOT EXISTS leaves an
+ * older table as it was, so each new column is added here if it is missing.
+ */
+const MIGRATIONS = [
+  ['subscriptions', 'reminded_at', 'TEXT'],
+];
+for (const [table, column, def] of MIGRATIONS) {
+  if (!db.prepare(`PRAGMA table_info(${table})`).all().some((c) => c.name === column)) {
+    db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${def}`);
+    console.log(`Migrated: added ${table}.${column}`);
+  }
+}
+
 /** Run fn inside a transaction; nested calls reuse the outer transaction. */
 export const tx = (fn) => db.transaction(fn);
 

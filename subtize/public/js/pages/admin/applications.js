@@ -35,12 +35,11 @@ export async function renderApplications({ view, query }) {
   const draw = (rows) => {
     listEl.innerHTML = table([
       { label: 'Application', render: (a) => `${mono(a.publicId)}<div class="cell-sub">${esc(fmtDate(a.createdAt))}</div>` },
-      { label: 'Business', render: (a) => `<a class="cell-title" href="#/applications/${a.id}">${esc(a.businessName)}</a><div class="cell-sub">${esc(a.category?.name || '—')}</div>` },
-      { label: 'Applicant', render: (a) => `${esc(a.applicantName)}<div class="cell-sub">${esc(a.email)}</div>` },
+      { label: 'Business', cls: 'mid', render: (a) => `<a class="cell-title" href="#/applications/${a.id}">${esc(a.businessName)}</a><div class="cell-sub">${esc(a.category?.name || '—')}</div>` },
+      { label: 'Applicant', render: (a) => `${esc(a.applicantName)}<div class="cell-sub adm-ellipsis" title="${esc(a.email)}">${esc(a.email)}</div>` },
       { label: 'City', render: (a) => esc(a.city) },
       { label: 'Status', render: (a) => pill(a.status) },
-      { label: 'Checks', render: (a) => `<div class="adm-checkset">${checkIcon(a.documentsVerified, 'Docs')}${checkIcon(a.addressVerified, 'Address')}</div>` },
-      { label: 'Documents', cls: 'right', render: (a) => `<span class="num">${a.documents.length}</span>` },
+      { label: 'Checks', render: (a) => `<div class="adm-checkset">${checkIcon(a.documentsVerified, 'Docs')}${checkIcon(a.addressVerified, 'Address')}</div><div class="cell-sub">${a.documents.length} document${a.documents.length === 1 ? '' : 's'}</div>` },
       { label: 'Verification ID', render: (a) => mono(a.verificationId) },
       { label: '', cls: 'nowrap', render: (a) => `<a class="btn ${['applied', 'under_review'].includes(a.status) ? 'btn-primary' : 'btn-secondary'} btn-sm" href="#/applications/${a.id}">${['applied', 'under_review', 'verification_required'].includes(a.status) ? 'Review' : 'Open'}</a>` },
     ], rows, { empty: emptyState({ ic: 'fileCheck', title: 'No applications here', text: q ? 'Nothing matches that search.' : 'New lister applications will appear here.' }) });
@@ -103,7 +102,7 @@ export async function renderApplication({ view, params, query }) {
           ['City', esc(a.city)],
           ['Category', esc(a.category?.name || '—')],
           ['Services offered', `<span class="adm-pre">${esc(a.serviceDescription)}</span>`],
-          ['Agreement terms', a.agreementAck ? tonePill('Acknowledged 20% commission terms', 'good') : tonePill('Not acknowledged', 'bad')],
+          ['Agreement terms', a.agreementAck ? tonePill('Acknowledged', 'good') : tonePill('Not acknowledged', 'bad')],
         ]), { ic: 'briefcase' })}
         ${card('Identity and address', kv([
           ['Verification type', orDash(a.govIdType)],
@@ -174,8 +173,8 @@ export async function renderApplication({ view, params, query }) {
     approveBtn.disabled = !ready;
     const missing = [!state.documentsVerified && 'Documents verified', !state.addressVerified && 'Address verified'].filter(Boolean);
     hint.innerHTML = ready
-      ? `${icon('checkCircle', 'sm')} Both checks are done. Approving issues a Verification ID, assigns the Lister role and sends the Lister Agreement for e-signature.`
-      : `${icon('lock', 'sm')} Approval unlocks once you tick <b>${missing.join('</b> and <b>')}</b>.`;
+      ? `${icon('checkCircle', 'sm')}<span>Both checks are done. Approving issues a Verification ID, assigns the Lister role and sends the Lister Agreement for e-signature.</span>`
+      : `${icon('lock', 'sm')}<span>Approval unlocks once you tick <b>${missing.join('</b> and <b>')}</b>.</span>`;
   };
   syncApprove();
 

@@ -56,7 +56,8 @@ export async function askAssistant(text, { context = { page: 'search' }, positio
  * opts: { context, placeholder, onResult(result, text), examples: true, size: 'lg'|'md', speakReplies: true }
  */
 export function mountAiBox(host, opts = {}) {
-  const { context = { page: 'search' }, placeholder = 'Try "gym near me under ₹1,000" or tap the mic', onResult, examples = true, size = 'lg', speakReplies = true, initial = '' } = opts;
+  const narrow = window.matchMedia('(max-width: 520px)').matches;
+  const { context = { page: 'search' }, placeholder = narrow ? 'Gym near me under ₹1,000…' : 'Try "gym near me under ₹1,000" or tap the mic', onResult, examples = true, size = 'lg', speakReplies = true, initial = '' } = opts;
   host.innerHTML = `
     <form class="ai-box" role="search" autocomplete="off">
       <div class="input-group">

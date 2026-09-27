@@ -249,7 +249,7 @@ export function resolve(parsed, { user = null, origin = null, context = {} } = {
   const f = { ...filters };
   const needsOrigin = f.nearMe && !origin;
   const searchOrigin = origin || (f.area ? findLocation(f.area) : null);
-  if (f.area && searchOrigin && !f.distance) f.distance = 4;
+  if (f.area && searchOrigin && !f.distance) { f.distance = 4; out.filters = { ...filters, distance: 4 }; }
 
   if (intent === 'clear') { out.reply = 'Filters cleared. Showing everything.'; return out; }
   if (intent === 'navigate') { out.reply = out.navigate ? `Opening your ${out.navigate}.` : 'Where would you like to go?'; return out; }

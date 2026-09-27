@@ -35,14 +35,12 @@ export async function renderSubscriptions({ view, query }) {
   const listEl = $('[data-list]', root);
   const draw = (rows) => {
     listEl.innerHTML = `<p class="muted small mb-8">${rows.length === 300 ? 'Showing the newest 300 — search to narrow down.' : `${rows.length} subscription${rows.length === 1 ? '' : 's'}`}</p>${table([
-      { label: 'ID', render: (s) => `<a class="mono" href="#/subscriptions/${esc(s.id)}">${esc(s.id)}</a>` },
-      { label: 'Member', render: (s) => `<a class="cell-title" href="#/users/${s.user.id}">${esc(s.user.name)}</a><div class="cell-sub">${esc(s.user.email)}</div>` },
-      { label: 'Service', render: (s) => `<a href="#/services/${s.service.id}">${esc(s.service.name)}</a>` },
-      { label: 'Plan', render: (s) => esc(planLabel(s.months)) },
-      { label: 'Status', render: (s) => pill(s.status === 'active' && s.bucket === 'expiring' ? 'expiring' : s.status) },
-      { label: 'Start – end', render: (s) => (s.startDate ? `<span class="nowrap">${esc(fmtDate(s.startDate))}</span><div class="cell-sub nowrap">to ${esc(fmtDate(s.endDate))}</div>` : dash) },
-      { label: 'Days left', cls: 'right', render: (s) => (s.status === 'active' ? `<span class="num">${s.remainingDays}</span>` : dash) },
-      { label: 'Payment', render: (s) => (s.payment ? `${pill(s.payment.status)}<div class="cell-sub num">${esc(inr(s.payment.finalAmount))}</div>` : dash) },
+      { label: 'ID', render: (s) => `<a class="mono small" href="#/subscriptions/${esc(s.id)}">${esc(s.id)}</a>` },
+      { label: 'Member', render: (s) => `<a class="cell-title" href="#/users/${s.user.id}">${esc(s.user.name)}</a><div class="cell-sub adm-ellipsis" title="${esc(s.user.email)}">${esc(s.user.email)}</div>` },
+      { label: 'Service · plan', cls: 'wide', render: (s) => `<a href="#/services/${s.service.id}">${esc(s.service.name)}</a><div class="cell-sub">${esc(planLabel(s.months))} plan</div>` },
+      { label: 'Status', render: (s) => pill(s.status === 'active' && s.bucket === 'expiring' ? 'expiring' : s.status, s.status === 'pending_verification' ? 'Pending' : null) },
+      { label: 'Period', render: (s) => (s.startDate ? `<span class="nowrap">${esc(fmtDate(s.startDate))} –</span><div class="nowrap">${esc(fmtDate(s.endDate))}</div>${s.status === 'active' ? `<div class="cell-sub nowrap"><b class="num soft">${s.remainingDays}</b> days left</div>` : ''}` : dash) },
+      { label: 'Payment', render: (s) => (s.payment ? `${pill(s.payment.status, s.payment.status === 'pending' ? 'Pending' : null)}<div class="cell-sub num">${esc(inr(s.payment.finalAmount))}</div>` : dash) },
       { label: 'Usage', render: (s) => (s.usage ? `<div class="adm-meter">${usageMeter(s.usage)}</div>` : dash) },
       {
         label: '',

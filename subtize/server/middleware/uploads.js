@@ -23,7 +23,7 @@ function uploader(folder, types) {
     }),
     limits: { fileSize: config.maxUploadBytes, files: 8 },
     fileFilter: (_req, file, cb) => {
-      if (!types[file.mimetype]) return cb(badRequest(`${file.originalname} is not an accepted file type (${Object.values(types).join(', ')}).`));
+      if (!types[file.mimetype]) return cb(badRequest(`${file.originalname} is not an accepted file type (${[...new Set(Object.values(types))].join(', ')}).`, { field: file.fieldname }));
       cb(null, true);
     },
   });
