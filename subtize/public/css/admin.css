@@ -158,7 +158,8 @@
 .adm-prefix > .input { padding-left: 30px; }
 .adm-checks { gap: 8px 18px; min-height: 44px; align-items: center; }
 .adm-switch { gap: 12px; min-height: 44px; font-size: 14px; color: var(--text-2); cursor: pointer; }
-.adm-form-foot { position: sticky; bottom: 0; z-index: 5; padding: 14px 0 16px; background: linear-gradient(180deg, rgba(7, 10, 8, 0), var(--bg) 28%); }
+.adm-form-foot { position: sticky; bottom: 0; z-index: 5; padding: 14px 0 16px; background: var(--bg); border-top: 1px solid var(--line); box-shadow: 0 -12px 24px rgba(7, 10, 8, .8); }
+.adm-form-foot .panel-note.danger { background: linear-gradient(var(--red-soft), var(--red-soft)), var(--surface); }
 .adm-form-foot [data-form-error] { margin-bottom: 12px; }
 .adm-internal { border: 1px dashed rgba(245, 184, 65, .45); background: linear-gradient(180deg, rgba(245, 184, 65, .05), rgba(245, 184, 65, 0) 60%), var(--surface); }
 .adm-lock { background: var(--amber-soft); color: var(--amber); }
@@ -241,7 +242,7 @@
 .adm-fig { font-size: 24px; font-weight: 700; letter-spacing: -.02em; color: var(--text); }
 .adm-fig.accent { color: var(--green); }
 .adm-op { font-size: 26px; color: var(--muted); font-weight: 300; }
-@media (max-width: 560px) { .adm-fig { font-size: 20px; } .adm-formula-row { gap: 10px; } }
+@media (max-width: 560px) { .adm-fig { font-size: 20px; } .adm-formula-row { flex-direction: column; align-items: flex-start; gap: 2px; } .adm-op { font-size: 20px; line-height: 1; } }
 
 /* Mail outbox */
 .adm-mail { display: flex; flex-direction: column; gap: 8px; }
@@ -266,3 +267,5 @@
 .adm .kv { grid-template-columns: minmax(110px, 38%) minmax(0, 1fr); }
 .adm .kv .pill { white-space: normal; height: auto; min-height: 24px; padding-top: 2px; padding-bottom: 2px; }
 @media (max-width: 480px) { .adm .kv { grid-template-columns: minmax(0, 1fr); gap: 2px; } .adm .kv dd { margin-bottom: 10px; } }
+.adm-top-grid { align-items: start; }
+.adm-top-grid > :only-child { grid-column: 1 / -1; }

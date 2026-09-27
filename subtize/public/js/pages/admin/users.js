@@ -113,14 +113,7 @@ export async function renderUserDetail({ view, params, ctx }) {
     </div>
     ${isAdmin ? `<div class="panel-note mt-16">${icon('info')}<div>${self ? 'This is your own account.' : 'Admin accounts'} are managed separately; status and role changes are not available here.</div></div>` : ''}
 
-    <div class="adm-split mt-16">
-      <div class="stack">
-        ${card(`Subscriptions (${data.subscriptions.length})`, table(subCols, data.subscriptions, { empty: '<p class="muted small">No subscriptions.</p>' }), { ic: 'layers' })}
-        ${card(`Payment history (${data.payments.length})`, table(payCols, data.payments, { empty: '<p class="muted small">No payments.</p>' }), { ic: 'receipt' })}
-        ${card('Activity', data.activity.length ? `<ol class="adm-timeline">${data.activity.map((a) => `<li><div><b>${esc(a.action.replace(/[._]/g, ' '))}</b>${a.detail ? ` <span class="soft">— ${esc(a.detail)}</span>` : ''}</div>
-          <div class="small muted">${esc(a.actor || 'System')} · ${esc(fmtDateTime(a.at))}</div></li>`).join('')}</ol>` : '<p class="muted small">No recorded activity.</p>', { ic: 'activity' })}
-      </div>
-      <div class="stack">
+    <div class="grid cols-2 mt-16 adm-top-grid">
         ${card('Profile', kv([
           ['User ID', mono(u.publicId)],
           ['Internal ID', `<span class="num">${u.id}</span>`],
@@ -144,7 +137,13 @@ export async function renderUserDetail({ view, params, ctx }) {
           l ? ['Agreement', `${agreementPill(l.agreementStatus)} ${l.agreementId ? `<span class="mono small muted">${esc(l.agreementId)}</span>` : ''}`] : null,
           l ? ['Can publish', yesNo(l.canPublish)] : null,
         ])}${u.role === 'lister' ? `<div class="row wrap mt-16"><a class="btn btn-secondary btn-sm" href="#/services?q=${encodeURIComponent(u.fullName)}">Their services</a><a class="btn btn-secondary btn-sm" href="#/listers?q=${encodeURIComponent(u.email)}">Lister record</a></div>` : ''}`, { ic: 'briefcase' }) : ''}
-      </div>
+    </div>
+    <div class="stack mt-16">
+        ${card(`Subscriptions (${data.subscriptions.length})`, table(subCols, data.subscriptions, { empty: '<p class="muted small">No subscriptions.</p>' }), { ic: 'layers' })}
+        ${card(`Payment history (${data.payments.length})`, table(payCols, data.payments, { empty: '<p class="muted small">No payments.</p>' }), { ic: 'receipt' })}
+        ${card('Activity', data.activity.length ? `<ol class="adm-timeline">${data.activity.map((a) => `<li><div><b>${esc(a.action.replace(/[._]/g, ' '))}</b>${a.detail ? ` <span class="soft">— ${esc(a.detail)}</span>` : ''}</div>
+          <div class="small muted">${esc(a.actor || 'System')} · ${esc(fmtDateTime(a.at))}</div></li>`).join('')}</ol>` : '<p class="muted small">No recorded activity.</p>', { ic: 'activity' })}
+    </div>
     </div>`);
 
   const reload = () => go(`/users/${u.id}`);

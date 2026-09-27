@@ -92,7 +92,7 @@ export async function renderDashboard({ view }) {
     <div class="adm-split">
       <section class="card"><div class="card-head"><h3>Last 6 months</h3><a class="btn btn-ghost btn-sm" href="#/revenue">Revenue ${icon('chevron', 'sm')}</a></div><div data-chart></div></section>
       <section class="card"><div class="card-head"><h3>Top services · ${esc(month)}</h3></div>
-        ${dash.topServices.length ? `<ol class="adm-top">${dash.topServices.map((s) => `<li><span class="grow">${esc(s.service)}<span class="cell-sub"> · ${s.payments} payment${s.payments === 1 ? '' : 's'}</span></span><b class="num">${esc(inr(s.gross))}</b></li>`).join('')}</ol>`
+        ${dash.topServices.length ? `<ol class="adm-top">${dash.topServices.map((s) => `<li><span class="grow"><span class="soft">${esc(s.service)}</span><span class="small muted" style="display:block">${s.payments} payment${s.payments === 1 ? '' : 's'}</span></span><b class="num">${esc(inr(s.gross))}</b></li>`).join('')}</ol>`
           : '<p class="muted small">No verified payments yet this month.</p>'}
       </section>
     </div>`);
